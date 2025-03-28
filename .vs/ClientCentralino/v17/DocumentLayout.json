@@ -30,8 +30,12 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 4,
           "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
             {
               "$type": "Document",
               "DocumentIndex": 1,
@@ -42,8 +46,7 @@
               "RelativeToolTip": "ViewModels\\MainViewModel.cs",
               "ViewState": "AgIAAAYAAAAAAAAAAAAAAC8AAAAcAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-28T14:40:02.995Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-03-28T14:40:02.995Z"
             },
             {
               "$type": "Document",
@@ -55,8 +58,7 @@
               "RelativeToolTip": "Models\\Chiamata.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-28T14:30:24.038Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-03-28T14:30:24.038Z"
             },
             {
               "$type": "Document",
@@ -68,8 +70,7 @@
               "RelativeToolTip": "Services\\ApiService.cs",
               "ViewState": "AgIAAAYAAAAAAAAAAAAAAAcAAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-28T14:26:26.929Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-03-28T14:26:26.929Z"
             },
             {
               "$type": "Document",
@@ -93,8 +94,7 @@
               "RelativeToolTip": "MainWindow.xaml.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAACMAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-28T11:34:39.042Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-03-28T11:34:39.042Z"
             }
           ]
         }

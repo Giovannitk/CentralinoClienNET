@@ -5,19 +5,35 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClientCentralino"
         mc:Ignorable="d"
-        Title="Statistiche Chiamate" Height="400" Width="700">
+        Title="Pannello Client" Height="400" Width="800">
     <Grid>
-        <ListView ItemsSource="{Binding Chiamate}">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Id}" />
-                    <GridViewColumn Header="Chiamante" DisplayMemberBinding="{Binding NumeroChiamanteID}" />
-                    <GridViewColumn Header="Chiamato" DisplayMemberBinding="{Binding NumeroChiamatoID}" />
-                    <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding TipoChiamata}" />
-                    <GridViewColumn Header="Inizio" DisplayMemberBinding="{Binding DataArrivoChiamata}" />
-                    <GridViewColumn Header="Fine" DisplayMemberBinding="{Binding DataFineChiamata}" />
-                </GridView>
-            </ListView.View>
-        </ListView>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Menu a sinistra -->
+        <StackPanel Background="#EEE" Grid.Column="0">
+            <TextBlock Text="Menu" FontSize="16" FontWeight="Bold" Margin="10"/>
+            <Button Content="Home" Height="40" Margin="10"/>
+            <Button Content="Statistiche" Height="40" Margin="10" Click="MostraStatistiche"/>
+            <Button Content="Impostazioni" Height="40" Margin="10"/>
+        </StackPanel>
+
+        <!-- Contenuto principale -->
+        <Grid Grid.Column="1" Name="ContentArea" Margin="10">
+            <ListView ItemsSource="{Binding Chiamate}" SelectionChanged="ListView_SelectionChanged">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="ID" Width="60" DisplayMemberBinding="{Binding Id}" />
+                        <GridViewColumn Header="Chiamante" Width="80" DisplayMemberBinding="{Binding NumeroChiamanteID}" />
+                        <GridViewColumn Header="Chiamato" Width="80" DisplayMemberBinding="{Binding NumeroChiamatoID}" />
+                        <GridViewColumn Header="Tipo" Width="50" DisplayMemberBinding="{Binding TipoChiamata}" />
+                        <GridViewColumn Header="Inizio" Width="140" DisplayMemberBinding="{Binding DataArrivoChiamata}" />
+                        <GridViewColumn Header="Fine" Width="140" DisplayMemberBinding="{Binding DataFineChiamata}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </Grid>
     </Grid>
 </Window>

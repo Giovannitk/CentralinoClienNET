@@ -5,8 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClientCentralino"
         mc:Ignorable="d"
-        Title="ClientCentralino" Height="450" Width="800">
+        Title="Statistiche Chiamate" Height="400" Width="700">
     <Grid>
-
+        <ListView ItemsSource="{Binding Chiamate}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Id}" />
+                    <GridViewColumn Header="Chiamante" DisplayMemberBinding="{Binding NumeroChiamanteID}" />
+                    <GridViewColumn Header="Chiamato" DisplayMemberBinding="{Binding NumeroChiamatoID}" />
+                    <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding TipoChiamata}" />
+                    <GridViewColumn Header="Inizio" DisplayMemberBinding="{Binding DataArrivoChiamata}" />
+                    <GridViewColumn Header="Fine" DisplayMemberBinding="{Binding DataFineChiamata}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
     </Grid>
 </Window>

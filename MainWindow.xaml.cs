@@ -19,6 +19,8 @@ namespace ClientCentralino
         public MainWindow()
         {
             InitializeComponent();
+
+            DataContext = new MainViewModel();
         }
     }
 }

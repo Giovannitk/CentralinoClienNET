@@ -18,3 +18,7 @@ C:\Users\Utente0000176\source\repos\ClientCentralino\obj\Debug\net8.0-windows\re
 C:\Users\Utente0000176\source\repos\ClientCentralino\obj\Debug\net8.0-windows\ClientCentralino.pdb
 C:\Users\Utente0000176\source\repos\ClientCentralino\obj\Debug\net8.0-windows\ClientCentralino.genruntimeconfig.cache
 C:\Users\Utente0000176\source\repos\ClientCentralino\obj\Debug\net8.0-windows\ref\ClientCentralino.dll
+C:\Users\Utente0000176\source\repos\ClientCentralino\obj\Debug\net8.0-windows\ClientCentralino.csproj.AssemblyReference.cache
+C:\Users\Utente0000176\source\repos\ClientCentralino\bin\Debug\net8.0-windows\Newtonsoft.Json.dll
+C:\Users\Utente0000176\source\repos\ClientCentralino\obj\Debug\net8.0-windows\ClientCentralino.sourcelink.json
+C:\Users\Utente0000176\source\repos\ClientCentralino\obj\Debug\net8.0-windows\ClientCe.BF1837FE.Up2Date

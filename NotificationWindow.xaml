@@ -1,0 +1,47 @@
+﻿<Window x:Class="ClientCentralino_vs2.NotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Nuova Chiamata" Height="250" Width="400"
+        WindowStartupLocation="CenterScreen" 
+        ShowInTaskbar="False" 
+        Topmost="True"
+        ResizeMode="NoResize">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="2" 
+                   Text="Nuova chiamata ricevuta!" 
+                   FontWeight="Bold" FontSize="16" 
+                   Margin="0,0,0,10"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="ID Chiamata:" Margin="0,5,10,5" FontWeight="Bold"/>
+        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtCallId" Margin="0,5,0,5"/>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Numero chiamante:" Margin="0,5,10,5" FontWeight="Bold"/>
+        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtCallerNumber" Margin="0,5,0,5"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Data e ora:" Margin="0,5,10,5" FontWeight="Bold"/>
+        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtCallDate" Margin="0,5,0,5"/>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Località:" Margin="0,5,10,5" FontWeight="Bold"/>
+        <TextBox Grid.Row="4" Grid.Column="1" x:Name="TxtLocationUpdate" Margin="0,5,0,5"/>
+
+        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="BtnUpdateLocation" Content="Aggiorna Località" Width="120" Click="BtnUpdateLocation_Click" Margin="0,0,10,0"/>
+            <Button x:Name="BtnOpenApp" Content="Apri Applicazione" Width="120" Click="BtnOpenApp_Click" Margin="0,0,10,0"/>
+            <Button x:Name="BtnClose" Content="Chiudi" Width="80" Click="BtnClose_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

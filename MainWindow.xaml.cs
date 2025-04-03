@@ -287,7 +287,8 @@ namespace ClientCentralino_vs2
             try
             {
                 var calls = await _apiService.GetAllCallsAsync();
-                DgCalls.ItemsSource = calls;
+                // Ordina le chiamate per data in ordine decrescente (dalla più recente alla più vecchia)
+                DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
             }
             catch (Exception ex)
             {
@@ -302,8 +303,8 @@ namespace ClientCentralino_vs2
             try
             {
                 var calls = await _apiService.GetAllCallsAsync();
-                
-                DgCalls.ItemsSource = calls;
+                // Ordina le chiamate per data in ordine decrescente (dalla più recente alla più vecchia)
+                DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
                 return calls;
             }
             catch (Exception ex)
@@ -327,11 +328,13 @@ namespace ClientCentralino_vs2
                 }
 
                 var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
-                DgCalls.ItemsSource = calls;
+                // Ordina le chiamate per data in ordine decrescente
+                DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Errore nel filtrare le chiamate: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Errore nel filtrare le chiamate: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

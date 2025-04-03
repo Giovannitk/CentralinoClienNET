@@ -1,14 +1,11 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using System.Windows.Media; // Namespace necessario per TextOptions e RenderOptions
 
 namespace ClientCentralino_vs2
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
     }
-
 }

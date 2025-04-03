@@ -17,18 +17,18 @@ namespace ClientCentralino_vs2
 
             // Posiziona la finestra in basso a destra
             var desktopWorkingArea = System.Windows.SystemParameters.WorkArea;
-            this.Left = desktopWorkingArea.Right - this.Width;
-            this.Top = desktopWorkingArea.Bottom - this.Height;
+            this.Left = desktopWorkingArea.Right - this.Width - 10; // 10px di margine dal bordo
+            this.Top = desktopWorkingArea.Bottom - this.Height - 10; // 10px di margine dal bordo
 
             _apiService = apiService;
             _call = call;
             _onOpenInMainApp = onOpenInMainApp;
 
             // Popola i dati della chiamata
-            //TxtCallId.Text = _call.Id.ToString();
             TxtCallerNumber.Text = _call.NumeroChiamante;
             TxtCallDate.Text = _call.DataArrivoChiamata.ToString("dd/MM/yyyy HH:mm:ss");
             TxtLocationUpdate.Text = _call.Locazione;
+            TxtCallRS.Text = _call.Locazione ?? "N/D"; // Gestione del caso null
         }
 
         private async void BtnUpdateLocation_Click(object sender, RoutedEventArgs e)
@@ -67,6 +67,13 @@ namespace ClientCentralino_vs2
         private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        // Permette di spostare la finestra trascinando l'header
+        private void Border_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+                this.DragMove();
         }
     }
 }

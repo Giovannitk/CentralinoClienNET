@@ -15,12 +15,17 @@ namespace ClientCentralino_vs2
         {
             InitializeComponent();
 
+            // Posiziona la finestra in basso a destra
+            var desktopWorkingArea = System.Windows.SystemParameters.WorkArea;
+            this.Left = desktopWorkingArea.Right - this.Width;
+            this.Top = desktopWorkingArea.Bottom - this.Height;
+
             _apiService = apiService;
             _call = call;
             _onOpenInMainApp = onOpenInMainApp;
 
             // Popola i dati della chiamata
-            TxtCallId.Text = _call.Id.ToString();
+            //TxtCallId.Text = _call.Id.ToString();
             TxtCallerNumber.Text = _call.NumeroChiamante;
             TxtCallDate.Text = _call.DataArrivoChiamata.ToString("dd/MM/yyyy HH:mm:ss");
             TxtLocationUpdate.Text = _call.Locazione;

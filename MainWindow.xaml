@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClientCentralino_vs2"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         mc:Ignorable="d"
         Title="Centralino Manager" Height="650" Width="1000"
         FontFamily="Segoe UI" FontSize="13"
@@ -193,6 +194,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="ChartBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#FFCCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -323,6 +333,71 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
+
+            <!-- Statistiche Tab -->
+            <TabItem Header="STATISTICHE" Style="{StaticResource LightModernTabItem}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Filtri statistiche -->
+                    <GroupBox Header="Filtri Statistiche" Grid.Row="0" Style="{StaticResource LightModernGroupBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Periodo:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <ComboBox x:Name="CbTimeRange" Width="150" Margin="0,0,10,0">
+                                <ComboBoxItem Content="Ultimi 7 giorni" IsSelected="True"/>
+                                <ComboBoxItem Content="Ultimo mese"/>
+                                <ComboBoxItem Content="Ultimo trimestre"/>
+                                <ComboBoxItem Content="Ultimo anno"/>
+                            </ComboBox>
+
+                            <Button x:Name="BtnRefreshStats" Content="Aggiorna" Width="100" Margin="10,0,0,0" 
+                                    Style="{StaticResource LightModernButton}" Click="BtnRefreshStats_Click"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- Grafici -->
+                    <Grid Grid.Row="1" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Grafico a barre - Chiamate per tipo -->
+                        <Border Grid.Column="0" Style="{StaticResource ChartBorderStyle}">
+                            <lvc:CartesianChart Series="{Binding SeriesCollection}" LegendLocation="Bottom" Hoverable="True">
+                                <lvc:CartesianChart.AxisX>
+                                    <lvc:Axis Title="Tipo chiamata" Labels="{Binding Labels}">
+                                        <lvc:Axis.Separator>
+                                            <lvc:Separator Step="1"></lvc:Separator>
+                                        </lvc:Axis.Separator>
+                                    </lvc:Axis>
+                                </lvc:CartesianChart.AxisX>
+                                <lvc:CartesianChart.AxisY>
+                                    <lvc:Axis Title="Numero chiamate">
+                                        <lvc:Axis.Separator>
+                                            <lvc:Separator></lvc:Separator>
+                                        </lvc:Axis.Separator>
+                                    </lvc:Axis>
+                                </lvc:CartesianChart.AxisY>
+                            </lvc:CartesianChart>
+                        </Border>
+
+                        <!-- Grafico a torta - Distribuzione chiamate -->
+                        <Border Grid.Column="1" Style="{StaticResource ChartBorderStyle}">
+                            <lvc:PieChart Series="{Binding PieSeries}" LegendLocation="Bottom" 
+                                          InnerRadius="70" Margin="10">
+                                <lvc:PieChart.ChartLegend>
+                                    <lvc:DefaultLegend BulletSize="15"></lvc:DefaultLegend>
+                                </lvc:PieChart.ChartLegend>
+                            </lvc:PieChart>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
         </TabControl>
     </Grid>
 </Window>

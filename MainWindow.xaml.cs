@@ -34,6 +34,17 @@ namespace ClientCentralino_vs2
             }
         }
 
+        private SeriesCollection _seriesCollection2;
+        public SeriesCollection SeriesCollection2
+        {
+            get => _seriesCollection2;
+            set
+            {
+                _seriesCollection2 = value;
+                OnPropertyChanged(nameof(SeriesCollection2));
+            }
+        }
+
         private SeriesCollection _pieSeries;
         public SeriesCollection PieSeries
         {
@@ -78,6 +89,17 @@ namespace ClientCentralino_vs2
             }
         }
 
+        private string[] _labels2;
+        public string[] Labels2
+        {
+            get => _labels2;
+            set
+            {
+                _labels2 = value;
+                OnPropertyChanged(nameof(Labels2));
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName)
@@ -100,6 +122,49 @@ namespace ClientCentralino_vs2
         public string[] LabelsAvgDuration { get; set; }
         public string[] LabelsTopCallers { get; set; }
 
+        private SeriesCollection _avgDurationSeries;
+        public SeriesCollection AvgDurationSeries
+        {
+            get => _avgDurationSeries;
+            set
+            {
+                _avgDurationSeries = value;
+                OnPropertyChanged(nameof(AvgDurationSeries));
+            }
+        }
+
+        private string[] _avgDurationLabels;
+        public string[] AvgDurationLabels
+        {
+            get => _avgDurationLabels;
+            set
+            {
+                _avgDurationLabels = value;
+                OnPropertyChanged(nameof(AvgDurationLabels));
+            }
+        }
+
+        private SeriesCollection _outgoingCallsSeries;
+        public SeriesCollection OutgoingCallsSeries
+        {
+            get => _outgoingCallsSeries;
+            set
+            {
+                _outgoingCallsSeries = value;
+                OnPropertyChanged(nameof(OutgoingCallsSeries));
+            }
+        }
+
+        private string[] _outgoingCallsLabels;
+        public string[] OutgoingCallsLabels
+        {
+            get => _outgoingCallsLabels;
+            set
+            {
+                _outgoingCallsLabels = value;
+                OnPropertyChanged(nameof(OutgoingCallsLabels));
+            }
+        }
 
 
         public MainWindow()
@@ -605,7 +670,7 @@ namespace ClientCentralino_vs2
 
             var call = calls[0].TipoChiamata; 
 
-            MessageBox.Show($"inbound: {stats.Inbound} - outbound: {stats.Outbound} - calls: {calls.Count()} - first call: {call}");
+            //MessageBox.Show($"inbound: {stats.Inbound} - outbound: {stats.Outbound} - calls: {calls.Count()} - first call: {call}");
 
             var dailyStats = recentCalls
                 .GroupBy(c => c.DataArrivoChiamata.Date)
@@ -617,23 +682,75 @@ namespace ClientCentralino_vs2
                 .OrderBy(d => d.Date)
                 .ToList();
 
+
+            // === Nuovi grafici per durata media e chiamate in uscita ===
+            var entrataConRagioneSociale = recentCalls
+                .Where(c => c.TipoChiamata?.ToLower() == "entrata" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
+                .GroupBy(c => c.RagioneSocialeChiamante)
+                .Select(g => new
+                {
+                    RagioneSociale = g.Key,
+                    MediaDurata = g.Where(c => c.DataArrivoChiamata != null && c.DataFineChiamata != null)
+                    .Average(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds)
+
+                })
+                .OrderByDescending(x => x.MediaDurata)
+                .ToList();
+
+            var uscitaConRagioneSociale = recentCalls
+                .Where(c => c.TipoChiamata?.ToLower() == "uscita" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
+                .GroupBy(c => c.RagioneSocialeChiamante)
+                .Select(g => new
+                {
+                    RagioneSociale = g.Key,
+                    NumeroChiamate = g.Count()
+                })
+                .OrderByDescending(x => x.NumeroChiamate)
+                .ToList();
+
             Application.Current.Dispatcher.Invoke(() =>
             {
                 // === Grafico a barre (per tipo) ===
-                Labels = new[] { "In entrata", "In uscita", "Persa", "Interna" };
+                //Labels = new[] { "In entrata", "In uscita", "Persa", "Interna" };
+                //SeriesCollection = new SeriesCollection
+                //{
+                //    new ColumnSeries
+                //    {
+                //        Title = "Chiamate",
+                //        Values = new ChartValues<int> { stats.Inbound, stats.Outbound, stats.Missed, stats.Internal },
+                //        Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)),
+                //        DataLabels = true,
+                //        LabelPoint = point => point.Y.ToString()
+                //    }
+                //};
+
+                // === Grafico Durata Media in entrata ===
+                Labels = entrataConRagioneSociale.Select(x => x.RagioneSociale).ToArray();
                 SeriesCollection = new SeriesCollection
                 {
                     new ColumnSeries
                     {
-                        Title = "Chiamate",
-                        Values = new ChartValues<int> { stats.Inbound, stats.Outbound, stats.Missed, stats.Internal },
-                        Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)),
+                        Title = "Durata media in entrata (sec)",
+                        Values = new ChartValues<double>(entrataConRagioneSociale.Select(x => x.MediaDurata).Take(30)),
                         DataLabels = true,
-                        LabelPoint = point => point.Y.ToString()
+                        LabelPoint = point => point.Y.ToString("F1")
                     }
                 };
 
-                    // === Grafico a torta ===
+                // === Grafico Durata Media in uscita ===
+                Labels2 = uscitaConRagioneSociale.Select(x => x.RagioneSociale).ToArray();
+                SeriesCollection2 = new SeriesCollection
+                {
+                    new ColumnSeries
+                    {
+                        Title = "Durata media in uscita (sec)",
+                        Values = new ChartValues<double>(entrataConRagioneSociale.Select(x => x.MediaDurata).Take(25)),
+                        DataLabels = true,
+                        LabelPoint = point => point.Y.ToString("F1")
+                    }
+                };
+
+                // === Grafico a torta ===
                 PieSeries = new SeriesCollection
                 {
                     new PieSeries { Title = "In entrata", Values = new ChartValues<double> { stats.Inbound }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)) },
@@ -664,8 +781,109 @@ namespace ClientCentralino_vs2
                 };
             }
 
-            MessageBox.Show("Assegnazione dei dati ai grafici terminata.");
+            //MessageBox.Show("Assegnazione dei dati ai grafici terminata.");
         }
+
+
+    //    private async Task InitializeChartsAsync(int days = 7)
+    //    {
+    //        var calls = await _apiService.GetAllCallsAsync();
+
+    //        // Filtro per giorni recenti
+    //        var dateThreshold = DateTime.Now.AddDays(-days);
+    //        var recentCalls = calls.Where(c => c.DataArrivoChiamata >= dateThreshold).ToList();
+
+
+
+    //        // Calcolo statistiche
+    //        var stats = new CallStatsDto
+    //        {
+    //            Inbound = recentCalls.Count(c => c.TipoChiamata?.ToLower() == "entrata"),
+    //            Outbound = recentCalls.Count(c => c.TipoChiamata?.ToLower() == "uscita"),
+    //            Missed = 0,
+    //            Internal = 0
+    //        };
+
+    //        var dailyStats = recentCalls
+    //            .GroupBy(c => c.DataArrivoChiamata.Date)
+    //            .Select(g => new DailyCallStatsDto
+    //            {
+    //                Date = g.Key,
+    //                Count = g.Count()
+    //            })
+    //            .OrderBy(d => d.Date)
+    //            .ToList();
+
+
+
+    //        // === Grafico a torta ===
+    //        PieSeries = new SeriesCollection
+    //        {
+    //            new PieSeries { Title = "In entrata", Values = new ChartValues<double> { stats.Inbound }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)) },
+    //            new PieSeries { Title = "In uscita", Values = new ChartValues<double> { stats.Outbound }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(100, 180, 255)) },
+    //            new PieSeries { Title = "Persa", Values = new ChartValues<double> { stats.Missed }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(200, 100, 100)) },
+    //            new PieSeries { Title = "Interna", Values = new ChartValues<double> { stats.Internal }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(100, 200, 100)) }
+    //        };
+
+    //        // === Nuovi grafici per durata media e chiamate in uscita ===
+    //        var entrataConRagioneSociale = recentCalls
+    //            .Where(c => c.TipoChiamata?.ToLower() == "entrata" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
+    //            .GroupBy(c => c.RagioneSocialeChiamante)
+    //            .Select(g => new
+    //            {
+    //                RagioneSociale = g.Key,
+    //                MediaDurata = g.Where(c => c.DataArrivoChiamata != null && c.DataFineChiamata != null)
+    //                .Average(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds)
+
+    //            })
+    //            .OrderByDescending(x => x.MediaDurata)
+    //            .ToList();
+
+    //        var uscitaConRagioneSociale = recentCalls
+    //            .Where(c => c.TipoChiamata?.ToLower() == "uscita" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
+    //            .GroupBy(c => c.RagioneSocialeChiamante)
+    //            .Select(g => new
+    //            {
+    //                RagioneSociale = g.Key,
+    //                NumeroChiamate = g.Count()
+    //            })
+    //            .OrderByDescending(x => x.NumeroChiamate)
+    //            .ToList();
+
+    //        MessageBox.Show($"entrata: {entrataConRagioneSociale[0].MediaDurata} - uscita: {uscitaConRagioneSociale.Count()}");
+
+    //        Application.Current.Dispatcher.Invoke(() =>
+    //        {
+    //            // === Grafico Durata Media ===
+    //            AvgDurationLabels = entrataConRagioneSociale.Select(x => x.RagioneSociale).ToArray();
+    //            AvgDurationSeries = new SeriesCollection
+    //{
+    //    new ColumnSeries
+    //    {
+    //        Title = "Durata media (sec)",
+    //        Values = new ChartValues<double>(entrataConRagioneSociale.Select(x => x.MediaDurata)),
+    //        DataLabels = true,
+    //        LabelPoint = point => point.Y.ToString("F1")
+    //    }
+    //};
+
+    //            // === Grafico Chiamate in Uscita ===
+    //            OutgoingCallsLabels = uscitaConRagioneSociale.Select(x => x.RagioneSociale).ToArray();
+    //            OutgoingCallsSeries = new SeriesCollection
+    //{
+    //    new ColumnSeries
+    //    {
+    //        Title = "Chiamate in uscita",
+    //        Values = new ChartValues<double>(uscitaConRagioneSociale.Select(x => (double)x.NumeroChiamate)),
+    //        DataLabels = true,
+    //        LabelPoint = point => point.Y.ToString()
+    //    }
+    //};
+    //        });
+
+
+    //        MessageBox.Show("Assegnazione dei dati ai grafici terminata.");
+    //    }
 
 
         private async void BtnRefreshStats_Click(object sender, RoutedEventArgs e)

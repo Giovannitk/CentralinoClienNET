@@ -10,6 +10,7 @@ using LiveCharts;
 using LiveCharts.Wpf;
 using System.ComponentModel;
 using System.Windows.Media;
+using System.Text.RegularExpressions;
 
 namespace ClientCentralino_vs2
 {
@@ -19,10 +20,7 @@ namespace ClientCentralino_vs2
         private readonly CallNotificationService _notificationService;
         private Chiamata _selectedCall;
 
-        // Proprietà per i dati dei grafici
-        public SeriesCollection SeriesCollectionAvgDuration { get; set; }
-        public SeriesCollection SeriesCollectionTopCallers { get; set; }
-
+        // Proprietà per i dati dei grafici --------------------------------------
         private SeriesCollection _seriesCollection;
         public SeriesCollection SeriesCollection
         {
@@ -56,6 +54,28 @@ namespace ClientCentralino_vs2
             }
         }
 
+        private SeriesCollection _pieSeries2;
+        public SeriesCollection PieSeries2
+        {
+            get => _pieSeries2;
+            set
+            {
+                _pieSeries2 = value;
+                OnPropertyChanged(nameof(PieSeries2));
+            }
+        }
+
+        private SeriesCollection _pieSeries3;
+        public SeriesCollection PieSeries3
+        {
+            get => _pieSeries3;
+            set
+            {
+                _pieSeries3 = value;
+                OnPropertyChanged(nameof(PieSeries3));
+            }
+        }
+
         private SeriesCollection _seriesCollectionCallsPerDay;
         public SeriesCollection SeriesCollectionCallsPerDay
         {
@@ -78,6 +98,8 @@ namespace ClientCentralino_vs2
             }
         }
 
+
+        // Label grafico a barre per chiamate in entrata
         private string[] _labels;
         public string[] Labels
         {
@@ -89,6 +111,7 @@ namespace ClientCentralino_vs2
             }
         }
 
+        // Label grafico a barre per chiamate in uscita
         private string[] _labels2;
         public string[] Labels2
         {
@@ -100,8 +123,7 @@ namespace ClientCentralino_vs2
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
+        public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -117,10 +139,6 @@ namespace ClientCentralino_vs2
                 OnPropertyChanged(nameof(SeriesCollectionByType));
             }
         }
-
-        public string[] LabelsByType { get; set; }
-        public string[] LabelsAvgDuration { get; set; }
-        public string[] LabelsTopCallers { get; set; }
 
         private SeriesCollection _avgDurationSeries;
         public SeriesCollection AvgDurationSeries
@@ -172,9 +190,6 @@ namespace ClientCentralino_vs2
             InitializeComponent();
             _apiService = new ApiService();
             _notificationService = new CallNotificationService(_apiService);
-
-            //Test chart
-            //TestCharts();
 
             // Avvia il servizio di notifica
             _notificationService.Start(OnNewCallReceived);
@@ -344,6 +359,7 @@ namespace ClientCentralino_vs2
             }
         }
 
+        // Funzione ricerca contatto
         private async void BtnSearchContact_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -390,6 +406,7 @@ namespace ClientCentralino_vs2
             }
         }
 
+        // Funzione salvataggio di un contatto
         private async void BtnSaveContact_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -435,222 +452,8 @@ namespace ClientCentralino_vs2
             }
         }
 
-       private async Task LoadStatistics()
-        {
-            try
-            {
-                Console.WriteLine("Inizio LoadStatistics");
 
-                var calls = await RefreshCalls();
-                Console.WriteLine($"Chiamate caricate: {calls?.Count ?? 0}");
-
-                if (calls == null || !calls.Any())
-                {
-                    MessageBox.Show("Nessuna chiamata disponibile per le statistiche",
-                                  "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                Console.WriteLine("Filtro date...");
-
-                // Filtra per intervallo di date
-                //if (DateFrom.SelectedDate != null || DateTo.SelectedDate != null)
-                //{
-                //    DateTime from = DateFrom.SelectedDate ?? calls.Min(c => c.DataArrivoChiamata);
-                //    DateTime to = DateTo.SelectedDate?.AddDays(1) ?? calls.Max(c => c.DataArrivoChiamata).AddDays(1);
-                //    calls = calls.Where(c => c.DataArrivoChiamata >= from && c.DataArrivoChiamata < to).ToList();
-                //}
-
-                // Carica i grafici
-                LoadCallsByType(calls);
-                LoadAvgDuration(calls);
-                LoadTopCallers(calls);
-                LoadCallsPerDay(calls);
-
-                // Forza l'aggiornamento UI
-                OnPropertyChanged(nameof(SeriesCollectionByType));
-                OnPropertyChanged(nameof(SeriesCollectionAvgDuration));
-                //OnPropertyChanged(nameof(SeriesCollectionTopCallers));
-                OnPropertyChanged(nameof(SeriesCollectionCallsPerDay));
-                OnPropertyChanged(nameof(LabelsByType));
-                OnPropertyChanged(nameof(LabelsAvgDuration));
-                OnPropertyChanged(nameof(LabelsTopCallers));
-                OnPropertyChanged(nameof(LabelsCallsPerDay));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore in LoadStatistics: {ex}");
-                MessageBox.Show($"Errore nel caricamento delle statistiche: {ex.Message}",
-                              "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-
-        private void LoadCallsByType(List<Chiamata> calls)
-        {
-            var callsByType = calls
-                .GroupBy(c => c.TipoChiamata ?? "Sconosciuto")
-                .Select(g => new { Tipo = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
-                .ToList();
-
-            // Debug: verifica i dati
-            Console.WriteLine("Chiamate per tipo:");
-            foreach (var item in callsByType)
-            {
-                Console.WriteLine($"{item.Tipo}: {item.Count}");
-            }
-
-            LabelsByType = callsByType.Select(x => x.Tipo).ToArray();
-            SeriesCollectionByType = new SeriesCollection
-            {
-                new ColumnSeries
-                {
-                    Title = "Chiamate",
-                    Values = new ChartValues<int>(callsByType.Select(x => x.Count))
-                }
-            };
-        }
-
-        private void LoadAvgDuration(List<Chiamata> calls)
-        {
-            foreach (Chiamata c in calls) 
-            {
-                MessageBox.Show($"chiamata: {c}");
-                break;
-            }
-
-            // Calcola la durata di ogni chiamata (in secondi)
-            var callsWithDuration = calls
-                .Select(c => new {
-                    c.TipoChiamata,
-                    Duration = (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds
-                })
-                .ToList();
-
-            // Calcola la durata media per tipo
-            var avgDurationByType = callsWithDuration
-                .GroupBy(c => c.TipoChiamata ?? "Sconosciuto")
-                .Select(g => new {
-                    Tipo = g.Key,
-                    AvgDuration = g.Average(x => x.Duration)
-                })
-                .OrderByDescending(x => x.AvgDuration)
-                .ToList();
-
-            LabelsAvgDuration = avgDurationByType.Select(x => x.Tipo).ToArray();
-            SeriesCollectionAvgDuration = new SeriesCollection
-            {
-                new ColumnSeries
-                {
-                    Title = "Durata Media (sec)",
-                    Values = new ChartValues<double>(avgDurationByType.Select(x => x.AvgDuration))
-                }
-            };
-        }
-
-        private void LoadTopCallers(List<Chiamata> calls, int topCount = 10)
-        {
-            // Trova i numeri che chiamano più frequentemente
-            var topCallers = calls
-                .Where(c => !string.IsNullOrEmpty(c.NumeroChiamante))
-                .GroupBy(c => c.NumeroChiamante)
-                .Select(g => new {
-                    Numero = g.Key,
-                    Count = g.Count(),
-                    RagioneSociale = g.First().RagioneSocialeChiamante
-                })
-                .OrderByDescending(x => x.Count)
-                .Take(topCount)
-                .ToList();
-
-            // Crea etichette con numero e ragione sociale (se presente)
-            LabelsTopCallers = topCallers
-                .Select(x => string.IsNullOrEmpty(x.RagioneSociale)
-                    ? x.Numero
-                    : $"{x.RagioneSociale} ({x.Numero})")
-                .ToArray();
-
-            SeriesCollectionTopCallers = new SeriesCollection
-            {
-                new ColumnSeries
-                {
-                    Title = "Chiamate",
-                    Values = new ChartValues<int>(topCallers.Select(x => x.Count))
-                }
-            };
-        }
-
-        private void LoadCallsPerDay(List<Chiamata> calls)
-        {
-            // Raggruppa per giorno
-            var callsPerDay = calls
-                .GroupBy(c => c.DataArrivoChiamata.Date)
-                .Select(g => new {
-                    Data = g.Key,
-                    Count = g.Count()
-                })
-                .OrderBy(x => x.Data)
-                .ToList();
-
-            // Se ci sono meno di 7 giorni, mostra tutti i giorni
-            // Altrimenti mostra gli ultimi 7 giorni
-            var daysToShow = callsPerDay.Count < 7 ? callsPerDay : callsPerDay.Skip(Math.Max(0, callsPerDay.Count - 7));
-
-            LabelsCallsPerDay = daysToShow.Select(x => x.Data.ToString("dd/MM")).ToArray();
-            SeriesCollectionCallsPerDay = new SeriesCollection
-            {
-                new LineSeries
-                {
-                    Title = "Chiamate",
-                    Values = new ChartValues<int>(daysToShow.Select(x => x.Count)),
-                    PointGeometry = DefaultGeometries.Circle,
-                    PointGeometrySize = 10
-                }
-            };
-        }
-
-        private async void BtnUpdateStats_Click(object sender, RoutedEventArgs e)
-        {
-            await LoadStatistics();
-        }
-
-        private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            try
-            {
-                if (TabControl.SelectedItem is TabItem selectedTab &&
-                    selectedTab.Header.ToString() == "STATISTICHE")
-                {
-                    await LoadStatistics();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Errore nel caricamento delle statistiche: {ex.Message}",
-                              "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void TestCharts()
-        {
-            // Dati di test
-            LabelsByType = new[] { "Test1", "Test2", "Test3" };
-            SeriesCollectionByType = new SeriesCollection
-            {
-                new ColumnSeries
-                {
-                    Title = "Test",
-                    Values = new ChartValues<int> { 10, 20, 30 }
-                }
-            };
-
-            // Notifica i cambiamenti
-            OnPropertyChanged(nameof(LabelsByType));
-            OnPropertyChanged(nameof(SeriesCollectionByType));
-        }
-
-
+        // Funzione principale per visualizzare i grafici delle statistiche.
         private async Task InitializeChartsAsync(int days = 7)
         {
             var calls = await _apiService.GetAllCallsAsync();
@@ -660,13 +463,84 @@ namespace ClientCentralino_vs2
             var recentCalls = calls.Where(c => c.DataArrivoChiamata >= dateThreshold).ToList();
 
             // Calcolo statistiche
+            var topCalled = recentCalls
+                .Where(c => c.TipoChiamata?.ToLower() == "entrata")
+                .GroupBy(c => new { c.NumeroChiamato, c.RagioneSocialeChiamato })
+                .OrderByDescending(g => g.Count())
+                .Select(g => new KeyValuePair<string, int>($"{g.Key.RagioneSocialeChiamato} ({g.Key.NumeroChiamato})", g.Count()))
+                .FirstOrDefault();
+
+            var topCaller = recentCalls
+                .Where(c => c.TipoChiamata?.ToLower() == "uscita")
+                .GroupBy(c => new { c.NumeroChiamante, c.RagioneSocialeChiamante })
+                .OrderByDescending(g => g.Count())
+                .Select(g => new KeyValuePair<string, int>($"{g.Key.RagioneSocialeChiamante} ({g.Key.NumeroChiamante})", g.Count()))
+                .FirstOrDefault();
+
+            //var topComune = recentCalls
+            //    .Select(c => EstraiComune(c.Locazione))
+            //    .Where(comune => !string.IsNullOrWhiteSpace(comune))
+            //    .GroupBy(comune => comune)
+            //    .OrderByDescending(g => g.Count())
+            //    .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+            //    .FirstOrDefault();
+            var allComuni = recentCalls
+                .Select(c => EstraiComune(c.Locazione))
+                .Where(comune => !string.IsNullOrWhiteSpace(comune))
+                .GroupBy(comune => comune)
+                .OrderByDescending(g => g.Count())
+                .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+                .ToList();
+
+
+            var topCalledOutbound = recentCalls
+                .Where(c => c.TipoChiamata?.ToLower() == "uscita")
+                .GroupBy(c => new { c.NumeroChiamato, c.RagioneSocialeChiamato })
+                .OrderByDescending(g => g.Count())
+                .Select(g => new KeyValuePair<string, int>($"{g.Key.RagioneSocialeChiamato} ({g.Key.NumeroChiamato})", g.Count()))
+                .FirstOrDefault();
+
+            var topCallerInbound = recentCalls
+                .Where(c => c.TipoChiamata?.ToLower() == "entrata")
+                .GroupBy(c => new { c.NumeroChiamante, c.RagioneSocialeChiamante })
+                .OrderByDescending(g => g.Count())
+                .Select(g => new KeyValuePair<string, int>($"{g.Key.RagioneSocialeChiamante} ({g.Key.NumeroChiamante})", g.Count()))
+                .FirstOrDefault();
+
+            // Estrai "Comune di ..." dal campo Locazione
+            //var comuniChiamanti = recentCalls
+            //    .Where(c => !string.IsNullOrEmpty(c.Locazione))
+            //    .Select(c =>
+            //    {
+            //        // Cerca "Comune di ..." nella locazione
+            //        var match = Regex.Match(c.Locazione, @"Comune di ([\w\s]+)", RegexOptions.IgnoreCase);
+            //        return match.Success ? match.Groups[1].Value.Trim() : null;
+            //    })
+            //    .Where(c => !string.IsNullOrEmpty(c))
+            //    .GroupBy(c => c)
+            //    .OrderByDescending(g => g.Count())
+            //    .Select(g => new { Comune = g.Key, Chiamate = g.Count() })
+            //    .ToList();
+
+
             var stats = new CallStatsDto
             {
                 Inbound = recentCalls.Count(c => c.TipoChiamata?.ToLower() == "entrata"),
                 Outbound = recentCalls.Count(c => c.TipoChiamata?.ToLower() == "uscita"),
-                Missed = 0,
-                Internal = 0
+                TopNumCallsInbound = topCalled,
+                TopNumCallsOutbound = topCaller,
+                //TopComune = topComune,
+                TopCallerInInbound = topCallerInbound,
+                MostCalledInOutbound = topCalledOutbound,
+                ComuniChiamanti = allComuni.Take(10).ToList()
             };
+
+            // Salva gli altri comuni (se esistono)
+            if (allComuni.Count > 10)
+            {
+                stats.AltriComuni = allComuni.Skip(10).ToList();
+            }
+
 
             var call = calls[0].TipoChiamata; 
 
@@ -684,46 +558,50 @@ namespace ClientCentralino_vs2
 
 
             // === Nuovi grafici per durata media e chiamate in uscita ===
+            // 1. Calcolo DURATA MEDIA delle chiamate IN ENTRATA (esterne --> azienda)
             var entrataConRagioneSociale = recentCalls
-                .Where(c => c.TipoChiamata?.ToLower() == "entrata" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
+                .Where(c => c.TipoChiamata?.Equals("entrata", StringComparison.OrdinalIgnoreCase) == true
+                            && !string.IsNullOrEmpty(c.RagioneSocialeChiamante)
+                            && c.DataArrivoChiamata != null
+                            && c.DataFineChiamata != null
+                            && c.DataFineChiamata > c.DataArrivoChiamata) // Esclude chiamate con durata negativa
                 .GroupBy(c => c.RagioneSocialeChiamante)
                 .Select(g => new
                 {
                     RagioneSociale = g.Key,
-                    MediaDurata = g.Where(c => c.DataArrivoChiamata != null && c.DataFineChiamata != null)
-                    .Average(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds)
-
-                })
-                .OrderByDescending(x => x.MediaDurata)
-                .ToList();
-
-            var uscitaConRagioneSociale = recentCalls
-                .Where(c => c.TipoChiamata?.ToLower() == "uscita" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
-                .GroupBy(c => c.RagioneSocialeChiamante)
-                .Select(g => new
-                {
-                    RagioneSociale = g.Key,
+                    MediaDurataSecondi = Math.Round(g.Average(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds)),
                     NumeroChiamate = g.Count()
                 })
-                .OrderByDescending(x => x.NumeroChiamate)
+                .OrderByDescending(x => x.MediaDurataSecondi)
                 .ToList();
+
+            // 2. Calcolo DURATA MEDIA delle chiamate IN USCITA (azienda --> esterne)
+            var uscitaConRagioneSociale = recentCalls
+                .Where(c => c.TipoChiamata?.Equals("uscita", StringComparison.OrdinalIgnoreCase) == true
+                            && !string.IsNullOrEmpty(c.RagioneSocialeChiamante)
+                            && c.DataArrivoChiamata != null
+                            && c.DataFineChiamata != null
+                            && c.DataFineChiamata > c.DataArrivoChiamata) // Esclude chiamate con durata negativa
+                .GroupBy(c => c.RagioneSocialeChiamante)
+                .Select(g => new
+                {
+                    RagioneSociale = g.Key,
+                    MediaDurataSecondi = Math.Round(g.Average(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds)),
+                    NumeroChiamate = g.Count()
+            
+                })
+                .OrderByDescending(x => x.MediaDurataSecondi)
+                .ToList();
+
+
+
+            //foreach (var i in entrataConRagioneSociale.Take(50)) 
+            //{
+            //    MessageBox.Show($"RS: {i.RagioneSociale} [num. {i.NumeroChiamate}, {i.MediaDurataSecondi}s]");
+            //}
 
             Application.Current.Dispatcher.Invoke(() =>
             {
-                // === Grafico a barre (per tipo) ===
-                //Labels = new[] { "In entrata", "In uscita", "Persa", "Interna" };
-                //SeriesCollection = new SeriesCollection
-                //{
-                //    new ColumnSeries
-                //    {
-                //        Title = "Chiamate",
-                //        Values = new ChartValues<int> { stats.Inbound, stats.Outbound, stats.Missed, stats.Internal },
-                //        Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)),
-                //        DataLabels = true,
-                //        LabelPoint = point => point.Y.ToString()
-                //    }
-                //};
-
                 // === Grafico Durata Media in entrata ===
                 Labels = entrataConRagioneSociale.Select(x => x.RagioneSociale).ToArray();
                 SeriesCollection = new SeriesCollection
@@ -731,7 +609,7 @@ namespace ClientCentralino_vs2
                     new ColumnSeries
                     {
                         Title = "Durata media in entrata (sec)",
-                        Values = new ChartValues<double>(entrataConRagioneSociale.Select(x => x.MediaDurata).Take(30)),
+                        Values = new ChartValues<double>(entrataConRagioneSociale.Select(x => x.MediaDurataSecondi).Take(30)),
                         DataLabels = true,
                         LabelPoint = point => point.Y.ToString("F1")
                     }
@@ -744,20 +622,125 @@ namespace ClientCentralino_vs2
                     new ColumnSeries
                     {
                         Title = "Durata media in uscita (sec)",
-                        Values = new ChartValues<double>(entrataConRagioneSociale.Select(x => x.MediaDurata).Take(25)),
+                        Values = new ChartValues<double>(uscitaConRagioneSociale.Select(x => x.MediaDurataSecondi).Take(25)),
                         DataLabels = true,
                         LabelPoint = point => point.Y.ToString("F1")
                     }
                 };
 
-                // === Grafico a torta ===
-                PieSeries = new SeriesCollection
-                {
-                    new PieSeries { Title = "In entrata", Values = new ChartValues<double> { stats.Inbound }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)) },
-                    new PieSeries { Title = "In uscita", Values = new ChartValues<double> { stats.Outbound }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(100, 180, 255)) },
-                    new PieSeries { Title = "Persa", Values = new ChartValues<double> { stats.Missed }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(200, 100, 100)) },
-                    new PieSeries { Title = "Interna", Values = new ChartValues<double> { stats.Internal }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(100, 200, 100)) }
+                // === Grafico a torta 1 ===
+                PieSeries = new SeriesCollection { 
+                    new PieSeries
+                    {
+                        Title = "In entrata",
+                        Values = new ChartValues<double> { stats.Inbound },
+                        DataLabels = true,
+                        Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)),
+                    },
+                    new PieSeries
+                    {
+                        Title = "In uscita",
+                        Values = new ChartValues<double> { stats.Outbound },
+                        DataLabels = true,
+                        Fill = new SolidColorBrush(Color.FromRgb(100, 180, 255))
+                    }
                 };
+
+                // === Grafico a torta 2 ===
+                PieSeries2 = new SeriesCollection {
+                    new PieSeries
+                    {
+                        Title = $"Più chiamato: {stats.TopNumCallsInbound?.Key}",
+                        Values = new ChartValues<double> { stats.TopNumCallsInbound?.Value ?? 0 },
+                        DataLabels = true,
+                        Fill = new SolidColorBrush(Color.FromRgb(200, 100, 100))
+                    },
+                    new PieSeries
+                    {
+                        Title = $"Ha chiamato di più: {stats.TopNumCallsOutbound?.Key}",
+                        Values = new ChartValues<double> { stats.TopNumCallsOutbound?.Value ?? 0 },
+                        DataLabels = true,
+                        Fill = new SolidColorBrush(Color.FromRgb(100, 200, 100))
+                    },
+                    new PieSeries
+                    {
+                        Title = $"Più chiamato in uscita: {stats.MostCalledInOutbound?.Key}",
+                        Values = new ChartValues<double> { stats.MostCalledInOutbound?.Value ?? 0 },
+                        DataLabels = true,
+                        Fill = new SolidColorBrush(Color.FromRgb(255, 140, 140))
+                    },
+                    new PieSeries
+                    {
+                        Title = $"Ha chiamato di più in entrata: {stats.TopCallerInInbound?.Key}",
+                        Values = new ChartValues<double> { stats.TopCallerInInbound?.Value ?? 0 },
+                        DataLabels = true,
+                        Fill = new SolidColorBrush(Color.FromRgb(140, 255, 140))
+                    }
+                };
+
+                // === Grafico a torta 2 ===
+                //PieSeries3 = new SeriesCollection {
+                //    new PieSeries
+                //    {
+                //        Title = $"Comune più attivo: {stats.TopComune?.Key}",
+                //        Values = new ChartValues<double> { stats.TopComune?.Value ?? 0 },
+                //        DataLabels = true,
+                //        Fill = new SolidColorBrush(Color.FromRgb(255, 180, 0))
+                //    }
+                //};
+
+                // === Grafico a torta (Tutti i comuni) ===
+                PieSeries3 = new SeriesCollection();
+
+                // Aggiungi i top 10 comuni
+                foreach (var comune in stats.ComuniChiamanti)
+                {
+                    PieSeries3.Add(new PieSeries
+                    {
+                        Title = comune.Key,
+                        Values = new ChartValues<double> { comune.Value },
+                        DataLabels = true,
+                        LabelPoint = point => $"{point.Y} ({point.Participation:P1})"
+                    });
+                }
+
+                // Aggiungi la voce "Altri" se ci sono comuni esclusi
+                if (stats.AltriComuni.Any())
+                {
+                    var altriTotal = stats.AltriComuni.Sum(c => c.Value);
+
+                    PieSeries3.Add(new PieSeries
+                    {
+                        Title = $"Altri comuni ({stats.AltriComuni.Count})",
+                        Values = new ChartValues<double> { altriTotal },
+                        Tag = stats.AltriComuni, // Memorizza la lista nel Tag
+                        DataLabels = true
+                    });
+                }
+
+                // Assegna colori (con colore grigio per "Altri comuni")
+                var colori = new List<Color>
+                {
+                    Color.FromRgb(255, 180, 0),  // arancione
+                    Color.FromRgb(0, 150, 255),   // blu
+                    Color.FromRgb(50, 200, 100),  // verde
+                    Color.FromRgb(200, 50, 150),  // rosa
+                    Color.FromRgb(150, 100, 255), // viola
+                    Color.FromRgb(255, 120, 0),   // arancione scuro
+                    Color.FromRgb(0, 100, 200),   // blu scuro
+                    Color.FromRgb(100, 180, 50),  // verde scuro
+                    Color.FromRgb(180, 30, 120),  // magenta
+                    Color.FromRgb(120, 80, 220),  // lilla
+                    Color.FromRgb(150, 150, 150)  // grigio (per "Altri comuni")
+                };
+
+                for (int i = 0; i < PieSeries3.Count; i++)
+                {
+                    var serie = (PieSeries)PieSeries3[i];
+                    serie.Fill = new SolidColorBrush(colori[i % colori.Count]);
+                }
+
+
             });
 
             
@@ -785,111 +768,19 @@ namespace ClientCentralino_vs2
         }
 
 
-    //    private async Task InitializeChartsAsync(int days = 7)
-    //    {
-    //        var calls = await _apiService.GetAllCallsAsync();
-
-    //        // Filtro per giorni recenti
-    //        var dateThreshold = DateTime.Now.AddDays(-days);
-    //        var recentCalls = calls.Where(c => c.DataArrivoChiamata >= dateThreshold).ToList();
-
-
-
-    //        // Calcolo statistiche
-    //        var stats = new CallStatsDto
-    //        {
-    //            Inbound = recentCalls.Count(c => c.TipoChiamata?.ToLower() == "entrata"),
-    //            Outbound = recentCalls.Count(c => c.TipoChiamata?.ToLower() == "uscita"),
-    //            Missed = 0,
-    //            Internal = 0
-    //        };
-
-    //        var dailyStats = recentCalls
-    //            .GroupBy(c => c.DataArrivoChiamata.Date)
-    //            .Select(g => new DailyCallStatsDto
-    //            {
-    //                Date = g.Key,
-    //                Count = g.Count()
-    //            })
-    //            .OrderBy(d => d.Date)
-    //            .ToList();
-
-
-
-    //        // === Grafico a torta ===
-    //        PieSeries = new SeriesCollection
-    //        {
-    //            new PieSeries { Title = "In entrata", Values = new ChartValues<double> { stats.Inbound }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)) },
-    //            new PieSeries { Title = "In uscita", Values = new ChartValues<double> { stats.Outbound }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(100, 180, 255)) },
-    //            new PieSeries { Title = "Persa", Values = new ChartValues<double> { stats.Missed }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(200, 100, 100)) },
-    //            new PieSeries { Title = "Interna", Values = new ChartValues<double> { stats.Internal }, DataLabels = true, Fill = new SolidColorBrush(Color.FromRgb(100, 200, 100)) }
-    //        };
-
-    //        // === Nuovi grafici per durata media e chiamate in uscita ===
-    //        var entrataConRagioneSociale = recentCalls
-    //            .Where(c => c.TipoChiamata?.ToLower() == "entrata" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
-    //            .GroupBy(c => c.RagioneSocialeChiamante)
-    //            .Select(g => new
-    //            {
-    //                RagioneSociale = g.Key,
-    //                MediaDurata = g.Where(c => c.DataArrivoChiamata != null && c.DataFineChiamata != null)
-    //                .Average(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds)
-
-    //            })
-    //            .OrderByDescending(x => x.MediaDurata)
-    //            .ToList();
-
-    //        var uscitaConRagioneSociale = recentCalls
-    //            .Where(c => c.TipoChiamata?.ToLower() == "uscita" && !string.IsNullOrEmpty(c.RagioneSocialeChiamante))
-    //            .GroupBy(c => c.RagioneSocialeChiamante)
-    //            .Select(g => new
-    //            {
-    //                RagioneSociale = g.Key,
-    //                NumeroChiamate = g.Count()
-    //            })
-    //            .OrderByDescending(x => x.NumeroChiamate)
-    //            .ToList();
-
-    //        MessageBox.Show($"entrata: {entrataConRagioneSociale[0].MediaDurata} - uscita: {uscitaConRagioneSociale.Count()}");
-
-    //        Application.Current.Dispatcher.Invoke(() =>
-    //        {
-    //            // === Grafico Durata Media ===
-    //            AvgDurationLabels = entrataConRagioneSociale.Select(x => x.RagioneSociale).ToArray();
-    //            AvgDurationSeries = new SeriesCollection
-    //{
-    //    new ColumnSeries
-    //    {
-    //        Title = "Durata media (sec)",
-    //        Values = new ChartValues<double>(entrataConRagioneSociale.Select(x => x.MediaDurata)),
-    //        DataLabels = true,
-    //        LabelPoint = point => point.Y.ToString("F1")
-    //    }
-    //};
-
-    //            // === Grafico Chiamate in Uscita ===
-    //            OutgoingCallsLabels = uscitaConRagioneSociale.Select(x => x.RagioneSociale).ToArray();
-    //            OutgoingCallsSeries = new SeriesCollection
-    //{
-    //    new ColumnSeries
-    //    {
-    //        Title = "Chiamate in uscita",
-    //        Values = new ChartValues<double>(uscitaConRagioneSociale.Select(x => (double)x.NumeroChiamate)),
-    //        DataLabels = true,
-    //        LabelPoint = point => point.Y.ToString()
-    //    }
-    //};
-    //        });
-
-
-    //        MessageBox.Show("Assegnazione dei dati ai grafici terminata.");
-    //    }
-
-
         private async void BtnRefreshStats_Click(object sender, RoutedEventArgs e)
         {
-            // Qui si dovrebbe implementare il refresh dei dati reali
+            // Implementazione refresh dei dati reali
             await InitializeChartsAsync();
         }
+
+        private string EstraiComune(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return "";
+
+            var match = Regex.Match(input, @"Comune di\s+(.*)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value.Trim() : "";
+        }
+
     }
 }

@@ -334,9 +334,10 @@
                 </Grid>
             </TabItem>
 
-            <!-- Statistiche Tab -->
+            <!-- Statistiche Tab - Versione con 2 righe principali -->
             <TabItem Header="STATISTICHE" Style="{StaticResource LightModernTabItem}">
                 <Grid Margin="0,10,0,0">
+                    
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <!-- Filtri -->
@@ -347,7 +348,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Filtri statistiche -->
-                    <GroupBox Header="Filtri Statistiche" Grid.Row="0" Style="{StaticResource LightModernGroupBox}">
+                    <GroupBox Header="Filtri Statistiche" Grid.Row="0" Style="{StaticResource LightModernGroupBox}" Grid.ColumnSpan="2">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Periodo:" VerticalAlignment="Center" Margin="0,0,10,0"/>
                             <ComboBox x:Name="CbTimeRange" Width="150" Margin="0,0,10,0">
@@ -358,12 +359,12 @@
                             </ComboBox>
 
                             <Button x:Name="BtnRefreshStats" Content="Aggiorna" Width="100" Margin="10,0,0,0" 
-                        Style="{StaticResource LightModernButton}" Click="BtnRefreshStats_Click"/>
+    Style="{StaticResource LightModernButton}" Click="BtnRefreshStats_Click"/>
                         </StackPanel>
                     </GroupBox>
 
                     <!-- PRIMA RIGA: Solo grafico a barre -->
-                    <Border Grid.Row="1" Style="{StaticResource ChartBorderStyle}" Margin="0,10,0,5">
+                    <Border Grid.Row="1" Style="{StaticResource ChartBorderStyle}" Margin="0,10,0,5" Grid.ColumnSpan="2">
                         <lvc:CartesianChart Series="{Binding SeriesCollection}" LegendLocation="Bottom" Hoverable="True">
                             <lvc:CartesianChart.AxisX>
                                 <lvc:Axis Title="Tipo chiamata" Labels="{Binding Labels}" LabelsRotation="20" FontSize="9" FontStyle="Oblique" FontFamily="Bold">
@@ -382,44 +383,72 @@
                         </lvc:CartesianChart>
                     </Border>
 
-                    <!-- SECONDA RIGA: Grafico a torta + Grafico a barre affiancati -->
+                    <!-- SECONDA RIGA: Tutti gli altri grafici in stack verticale -->
+                            <!-- SECONDA RIGA: Grafico a torta + Grafico a barre affiancati -->
                     <Grid Grid.Row="2" Margin="0,5,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="0.2*"/>
-                            <!-- Grafico a torta (20% dello spazio) -->
-                            <ColumnDefinition Width="0.8*"/>
-                            <!-- Grafico a barre (80% dello spazio) -->
+                            <ColumnDefinition Width="0.15*"/>
+                            <ColumnDefinition Width="0.4*"/>
+                            <ColumnDefinition Width="0.25*"/>
+                            <ColumnDefinition Width="0.4*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Grafico a torta (più piccolo) -->
-                        <Border Grid.Column="0" Style="{StaticResource ChartBorderStyle}" Margin="0,0,5,0">
-                            <lvc:PieChart Series="{Binding PieSeries}" LegendLocation="Bottom" InnerRadius="70" Margin="10">
+                        <!-- Grafico a torta (Chiamate in entrata e in uscita) -->
+                        <Border Grid.Column="0" Style="{StaticResource ChartBorderStyle}" Margin="5">
+                            <lvc:PieChart Series="{Binding PieSeries}" LegendLocation="Bottom" InnerRadius="0" Margin="10">
                                 <lvc:PieChart.ChartLegend>
-                                    <lvc:DefaultLegend BulletSize="15"></lvc:DefaultLegend>
+                                    <lvc:DefaultLegend BulletSize="15" />
                                 </lvc:PieChart.ChartLegend>
                             </lvc:PieChart>
                         </Border>
 
-                        <!-- Grafico a barre (più grande) -->
-                        <Border Grid.Column="1" Style="{StaticResource ChartBorderStyle}" Margin="5,0,0,0">
+                        <!-- Grafico a barre -->
+                        <Border Grid.Column="1" Style="{StaticResource ChartBorderStyle}" Margin="5">
                             <lvc:CartesianChart Series="{Binding SeriesCollection2}" LegendLocation="Bottom" Hoverable="True">
                                 <lvc:CartesianChart.AxisX>
                                     <lvc:Axis Title="Tipo chiamata" Labels="{Binding Labels2}" LabelsRotation="20" FontSize="9" FontStyle="Oblique" FontFamily="Bold">
                                         <lvc:Axis.Separator>
-                                            <lvc:Separator Step="1"></lvc:Separator>
+                                            <lvc:Separator Step="1"/>
                                         </lvc:Axis.Separator>
                                     </lvc:Axis>
                                 </lvc:CartesianChart.AxisX>
                                 <lvc:CartesianChart.AxisY>
                                     <lvc:Axis Title="Durata media chiamate">
                                         <lvc:Axis.Separator>
-                                            <lvc:Separator></lvc:Separator>
+                                            <lvc:Separator/>
                                         </lvc:Axis.Separator>
                                     </lvc:Axis>
                                 </lvc:CartesianChart.AxisY>
                             </lvc:CartesianChart>
                         </Border>
+
+                        <!-- Grafico a torta (contatti più attivi) -->
+                        <Border Grid.Column="2" Style="{StaticResource ChartBorderStyle}" Margin="5">
+                            <lvc:PieChart Series="{Binding PieSeries2}" LegendLocation="Bottom" InnerRadius="0" Margin="10">
+                                <lvc:PieChart.ChartLegend>
+                                    <lvc:DefaultLegend BulletSize="15" />
+                                </lvc:PieChart.ChartLegend>
+                            </lvc:PieChart>
+                        </Border>
+
+                        <!-- Grafico a torta (Comuni più attivi) -->
+                        <Border Grid.Column="3" Style="{StaticResource ChartBorderStyle}" Margin="5">
+                            <Grid>
+                                <ContentControl x:Name="tooltipContainer" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                       Margin="0,10,10,0" Background="Transparent"/>
+
+                                <lvc:PieChart Series="{Binding PieSeries3}" LegendLocation="Bottom" InnerRadius="30" Margin="10">
+                                    <lvc:PieChart.ChartLegend>
+                                        <lvc:DefaultLegend BulletSize="15"/>
+                                    </lvc:PieChart.ChartLegend>
+                                    <!-- <lvc:PieChart.DataTooltip>
+                                        <local:CustomTooltip/>
+                                    </lvc:PieChart.DataTooltip> -->
+                                </lvc:PieChart>
+                            </Grid>
+                        </Border>
                     </Grid>
+
                 </Grid>
             </TabItem>
 

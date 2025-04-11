@@ -149,8 +149,8 @@
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
-            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <!-- <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/> -->
             <Setter Property="ScrollViewer.PanningMode" Value="Both"/>
             <Setter Property="Stylus.IsFlicksEnabled" Value="False"/>
             <Setter Property="ColumnHeaderStyle">
@@ -240,14 +240,19 @@
 
                     <!-- Griglia chiamate -->
                     <DataGrid x:Name="DgCalls" Grid.Row="1" Style="{StaticResource LightModernDataGrid}"
-                              SelectionChanged="DgCalls_SelectionChanged">
+                          SelectionChanged="DgCalls_SelectionChanged"
+                          ScrollViewer.CanContentScroll="True"
+                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Tipo" Binding="{Binding TipoChiamata}" Width="100"/>
                             <DataGridTextColumn Header="Numero Chiamante" Binding="{Binding NumeroChiamante}" Width="150"/>
                             <DataGridTextColumn Header="Numero Chiamato" Binding="{Binding NumeroChiamato}" Width="150"/>
                             <DataGridTextColumn Header="Data Arrivo" Binding="{Binding DataArrivoChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
                             <DataGridTextColumn Header="Data Fine" Binding="{Binding DataFineChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
-                            <DataGridTextColumn Header="Località" Binding="{Binding Locazione}" Width="*"/>
+                            <DataGridTextColumn Header="Località" Binding="{Binding Locazione}" Width="280"/>
+                            <DataGridTextColumn Header="Ragione Sociale Chiamante" Binding="{Binding RagioneSocialeChiamante}" Width="400"/>
+                            <DataGridTextColumn Header="Ragione Sociale Chiamato" Binding="{Binding RagioneSocialeChiamato}" Width="500"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
@@ -320,16 +325,18 @@
 
                     <!-- Chiamate del contatto -->
                     <GroupBox Header="Chiamate del Contatto" Grid.Row="2" Style="{StaticResource LightModernGroupBox}">
-                        <DataGrid x:Name="DgContactCalls" Style="{StaticResource LightModernDataGrid}">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="ID" Binding="{Binding ID}" Width="60"/>
-                                <DataGridTextColumn Header="Tipo" Binding="{Binding TipoChiamata}" Width="100"/>
-                                <DataGridTextColumn Header="Data Arrivo" Binding="{Binding DataArrivoChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
-                                <DataGridTextColumn Header="Data Fine" Binding="{Binding DataFineChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
-                                <DataGridTextColumn Header="Durata (sec)" Binding="{Binding Durata.TotalSeconds, StringFormat=N0}" Width="120"/>
-                                <DataGridTextColumn Header="Località" Binding="{Binding Extra}" Width="*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <DataGrid x:Name="DgContactCalls" Style="{StaticResource LightModernDataGrid}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="ID" Binding="{Binding ID}" Width="60"/>
+                                    <DataGridTextColumn Header="Tipo" Binding="{Binding TipoChiamata}" Width="100"/>
+                                    <DataGridTextColumn Header="Data Arrivo" Binding="{Binding DataArrivoChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
+                                    <DataGridTextColumn Header="Data Fine" Binding="{Binding DataFineChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
+                                    <DataGridTextColumn Header="Durata (sec)" Binding="{Binding Durata.TotalSeconds, StringFormat=N0}" Width="120"/>
+                                    <DataGridTextColumn Header="Località" Binding="{Binding Extra}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </ScrollViewer>
                     </GroupBox>
                 </Grid>
             </TabItem>

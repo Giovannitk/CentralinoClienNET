@@ -293,6 +293,7 @@ namespace ClientCentralino_vs2
             try
             {
                 string phoneNumber = TxtFilterNumber.Text.Trim();
+                MessageBox.Show($"Numero inserito: {phoneNumber}");
 
                 if (string.IsNullOrEmpty(phoneNumber))
                 {
@@ -301,7 +302,8 @@ namespace ClientCentralino_vs2
                 }
 
                 var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
-                // Ordina le chiamate per data in ordine decrescente
+                MessageBox.Show($"Numero chiamate trovate: {calls.Count}");
+
                 DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
             }
             catch (Exception ex)
@@ -310,6 +312,7 @@ namespace ClientCentralino_vs2
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
         private async void BtnRefreshCalls_Click(object sender, RoutedEventArgs e)
         {
@@ -770,8 +773,31 @@ namespace ClientCentralino_vs2
 
         private async void BtnRefreshStats_Click(object sender, RoutedEventArgs e)
         {
+            int days = 7; // default
+
+            var selected = (CbTimeRange.SelectedItem as ComboBoxItem)?.Content?.ToString();
+
+            switch (selected)
+            {
+                case "Ultime 24 ore":
+                    days = 1;
+                    break;
+                case "Ultimi 7 giorni":
+                    days = 7;
+                    break;
+                case "Ultimo mese":
+                    days = 30;
+                    break;
+                case "Ultimo trimestre":
+                    days = 90;
+                    break;
+                case "Ultimo anno":
+                    days = 365;
+                    break;
+            }
+
             // Implementazione refresh dei dati reali
-            await InitializeChartsAsync();
+            await InitializeChartsAsync(days);
         }
 
         private string EstraiComune(string? input)
@@ -781,6 +807,5 @@ namespace ClientCentralino_vs2
             var match = Regex.Match(input, @"Comune di\s+(.*)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value.Trim() : "";
         }
-
     }
 }

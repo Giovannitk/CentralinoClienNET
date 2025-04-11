@@ -352,7 +352,8 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Periodo:" VerticalAlignment="Center" Margin="0,0,10,0"/>
                             <ComboBox x:Name="CbTimeRange" Width="150" Margin="0,0,10,0">
-                                <ComboBoxItem Content="Ultimi 7 giorni" IsSelected="True"/>
+                                <ComboBoxItem Content="Ultime 24 ore" IsSelected="True"/>
+                                <ComboBoxItem Content="Ultimi 7 giorni"/>
                                 <ComboBoxItem Content="Ultimo mese"/>
                                 <ComboBoxItem Content="Ultimo trimestre"/>
                                 <ComboBoxItem Content="Ultimo anno"/>

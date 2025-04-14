@@ -188,7 +188,6 @@ namespace ClientCentralino_vs2
             }
         }
 
-
         public MainWindow()
         {
             InitializeComponent();
@@ -201,6 +200,12 @@ namespace ClientCentralino_vs2
 
             // Inizializzazione Charts
             _ = InitializeChartsAsync();
+
+            // Visualizzazione contatti incompleti all'avvio dell'app
+            _ = ShowIncompleteContactsAsync();
+
+            // Visualizzazione contatti incomppleti tramite tooltip
+            _ = UpdateIncompleteContactsTooltipAsync();
 
             DataContext = this;
 
@@ -937,6 +942,8 @@ namespace ClientCentralino_vs2
             return value.Contains(";") ? $"\"{value}\"" : value;
         }
 
+
+        // Funzione per gestire il pulsante esporta chiamate tramite file
         private void ExportToExcel(List<Chiamata> calls, string filePath)
         {
             using (var workbook = new XLWorkbook())
@@ -977,5 +984,61 @@ namespace ClientCentralino_vs2
                 workbook.SaveAs(filePath);
             }
         }
+
+
+        // Funzione per gestire la visualizzazione dei contatti incompleti all'avvio dell'app
+        private async Task ShowIncompleteContactsAsync()
+        {
+            var incompleteContacts = await _apiService.GetIncompleteContactsAsync();
+
+            if (incompleteContacts.Any())
+            {
+                var message = new StringBuilder();
+                message.AppendLine("Contatti da completare:");
+                message.AppendLine("");
+                message.AppendLine("Numero".PadRight(15) + "Interno".PadRight(10) + "Rag. Sociale".PadRight(25) + "Città");
+
+                foreach (var contatto in incompleteContacts)
+                {
+                    message.AppendLine(
+                        (contatto.NumeroContatto ?? "NULL").PadRight(15) +
+                        contatto.Interno.ToString().PadRight(10) +
+                        (contatto.RagioneSociale ?? "NULL").PadRight(25) +
+                        (contatto.Citta ?? "NULL")
+                    );
+                }
+
+                MessageBox.Show(message.ToString(), "Attenzione", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+
+        // Funzione per gestire la visualizzazione dei contatti incompleti 
+        // tramite tooltip nella finestra Contatti.
+        private async Task UpdateIncompleteContactsTooltipAsync()
+        {
+            var contatti = await _apiService.GetIncompleteContactsAsync();
+
+            if (TooltipContattiIncompleti != null)
+            {
+                if (contatti.Any())
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine("Contatti da completare:\n");
+
+                    foreach (var c in contatti)
+                    {
+                        sb.AppendLine($"• {c.NumeroContatto} | Int: {c.Interno} | {c.RagioneSociale ?? "NULL"} | {c.Citta ?? "NULL"}");
+                    }
+
+                    ((TextBlock)TooltipContattiIncompleti.Content).Text = sb.ToString();
+                }
+                else
+                {
+                    ((TextBlock)TooltipContattiIncompleti.Content).Text = "Tutti i contatti sono completi.";
+                }
+            }
+        }
+
     }
 }

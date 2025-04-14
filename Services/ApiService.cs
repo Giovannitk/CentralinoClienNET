@@ -135,5 +135,24 @@ namespace ClientCentralino_vs2.Services
                 return false;
             }
         }
+
+
+        public async Task<List<Contatto>> GetIncompleteContactsAsync()
+        {
+            try
+            {
+                HttpResponseMessage response = await _client.GetAsync("api/Call/get-incomplete-contacts");
+                response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<List<Contatto>>(json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Errore API nel recupero contatti incompleti: {ex.Message}");
+                return new List<Contatto>();
+            }
+        }
+
+
     }
 }

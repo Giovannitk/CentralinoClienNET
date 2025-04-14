@@ -56,6 +56,7 @@ namespace ClientCentralino_vs2
             CmbLocations.Items.Add("Comune di Capo D'Orlando");
             CmbLocations.Items.Add("Comune di Casalvecchio Siculo");
             CmbLocations.Items.Add("Comune di Falcone");
+            CmbLocations.Items.Add("Comune di Forza d'Agro'");
             CmbLocations.Items.Add("Comune di Furci");
             CmbLocations.Items.Add("Comune di Furnari");
             CmbLocations.Items.Add("Comune di Gallodoro");

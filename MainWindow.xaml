@@ -301,7 +301,35 @@
                     </GroupBox>
 
                     <!-- Dettagli contatto -->
-                    <GroupBox Header="Dettagli Contatto" Grid.Row="1" Style="{StaticResource LightModernGroupBox}">
+                    <GroupBox Grid.Row="1" Style="{StaticResource LightModernGroupBox}">
+                        <GroupBox.Header>
+                            <DockPanel LastChildFill="True">
+                                <!-- Tooltip destra -->
+                                <TextBlock DockPanel.Dock="Right"
+                       Text="ⓘ Contatti incompleti"
+                       Foreground="DarkOrange"
+                       VerticalAlignment="Stretch" 
+                       HorizontalAlignment="Right">
+                                    <TextBlock.ToolTip>
+                                        <ToolTip x:Name="TooltipContattiIncompleti"
+                                                 MaxWidth="400"
+                                                 Padding="10"
+                                                 Background="LightYellow"
+                                                 Foreground="Black">
+                                            <TextBlock Text="Caricamento contatti incompleti..." TextWrapping="Wrap"/>
+                                            </ToolTip>
+                                        </TextBlock.ToolTip>
+                                    </TextBlock>
+
+                                <!-- Titolo sinistra -->
+                                <TextBlock Text="Dettagli Contatto"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,20,0"/>
+                            </DockPanel>
+                        </GroupBox.Header>
+
+
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>

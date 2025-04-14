@@ -334,18 +334,16 @@
 
                     <!-- Chiamate del contatto -->
                     <GroupBox Header="Chiamate del Contatto" Grid.Row="2" Style="{StaticResource LightModernGroupBox}">
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <DataGrid x:Name="DgContactCalls" Style="{StaticResource LightModernDataGrid}">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="ID" Binding="{Binding ID}" Width="60"/>
-                                    <DataGridTextColumn Header="Tipo" Binding="{Binding TipoChiamata}" Width="100"/>
-                                    <DataGridTextColumn Header="Data Arrivo" Binding="{Binding DataArrivoChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
-                                    <DataGridTextColumn Header="Data Fine" Binding="{Binding DataFineChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
-                                    <DataGridTextColumn Header="Durata (sec)" Binding="{Binding Durata.TotalSeconds, StringFormat=N0}" Width="120"/>
-                                    <DataGridTextColumn Header="Località" Binding="{Binding Extra}" Width="*"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </ScrollViewer>
+                        <DataGrid x:Name="DgContactCalls" Style="{StaticResource LightModernDataGrid}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding TipoChiamata}" Width="100"/>
+                                <DataGridTextColumn Header="Data Arrivo" Binding="{Binding DataArrivoChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
+                                <DataGridTextColumn Header="Data Fine" Binding="{Binding DataFineChiamata, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="180"/>
+                                <DataGridTextColumn Header="Ragione Sociale Chiamante" Binding="{Binding RagioneSocialeChiamante}" Width="300"/>
+                                <DataGridTextColumn Header="Ragione Sociale Chiamato" Binding="{Binding RagioneSocialeChiamato}" Width="300"/>
+                                <DataGridTextColumn Header="Località" Binding="{Binding Locazione}" Width="300"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </GroupBox>
                 </Grid>
             </TabItem>

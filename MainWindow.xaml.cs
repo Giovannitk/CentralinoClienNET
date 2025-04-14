@@ -426,6 +426,18 @@ namespace ClientCentralino_vs2
                     return;
                 }
 
+
+                string ragioneSociale = TxtContactCompany.Text;
+
+                if (string.IsNullOrEmpty(ragioneSociale))
+                {
+                    MessageBox.Show("La ragione sociale è obbligatoria.", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+
+                //string interno = TxtContactInternal.Text;
+
                 var contact = new Contatto
                 {
                     NumeroContatto = phoneNumber,
@@ -450,7 +462,7 @@ namespace ClientCentralino_vs2
                 }
                 else
                 {
-                    MessageBox.Show("Impossibile salvare il contatto.", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Impossibile salvare il contatto. Campi mancanti (probabile il campo interno).", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)

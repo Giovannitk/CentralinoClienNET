@@ -82,6 +82,7 @@ namespace ClientCentralino_vs2
             CmbLocations.Items.Add("Comune di Roccalumera");
             CmbLocations.Items.Add("Comune di Sambuca");
             CmbLocations.Items.Add("Comune di Santa Lucia del Mela");
+            CmbLocations.Items.Add("Comune di Saponara");
             CmbLocations.Items.Add("Comune di Scaletta Zanclea");
             CmbLocations.Items.Add("Comune di Spadafora");
             CmbLocations.Items.Add("Comune di Terme Vigliatore");

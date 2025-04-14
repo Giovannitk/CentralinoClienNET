@@ -82,11 +82,10 @@
 
                 <TextBlock Grid.Column="0" Text="Località:" Margin="0,5,10,5" 
                            Foreground="#FF666666" FontWeight="SemiBold"/>
-                <ComboBox Grid.Column="1" x:Name="CmbLocations"  Margin="0,5,0,5" 
-                          SelectedValuePath="Content"
-                          Background="White" Foreground="#FF333333" BorderBrush="#FFCCCCCC"
-                          Padding="5" VerticalContentAlignment="Center"
-                          SelectionChanged="CmbLocations_SelectionChanged"/>
+                <ComboBox Grid.Column="1" x:Name="CmbLocations" Margin="0,5,0,5" 
+                      Background="White" Foreground="#FF333333" BorderBrush="#FFCCCCCC"
+                      Padding="5" VerticalContentAlignment="Center"
+                      SelectionChanged="CmbLocations_SelectionChanged"/>
             </Grid>
 
             <!-- Campo per inserimento manuale (visibile solo se selezionato "Altro") -->

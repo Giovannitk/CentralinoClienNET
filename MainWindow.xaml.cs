@@ -11,6 +11,10 @@ using LiveCharts.Wpf;
 using System.ComponentModel;
 using System.Windows.Media;
 using System.Text.RegularExpressions;
+using Microsoft.Win32;
+using System.IO;
+using System.Text;
+using ClosedXML.Excel;
 
 namespace ClientCentralino_vs2
 {
@@ -806,6 +810,160 @@ namespace ClientCentralino_vs2
 
             var match = Regex.Match(input, @"Comune di\s+(.*)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value.Trim() : "";
+        }
+
+
+
+        // Esportazione chiamate in un file
+        private async void BtnExportCalls_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Mostra dialog per scegliere il formato di esportazione
+                var exportDialog = new ExportDialog();
+                if (exportDialog.ShowDialog() == true)
+                {
+                    // Ottieni le chiamate filtrate
+                    var calls = await GetFilteredCalls();
+
+                    if (calls == null || !calls.Any())
+                    {
+                        MessageBox.Show("Nessuna chiamata da esportare.", "Info",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    // Crea il dialog per salvare il file
+                    var saveFileDialog = new SaveFileDialog
+                    {
+                        Filter = exportDialog.SelectedFormat == ExportFormat.CSV
+                            ? "CSV file (*.csv)|*.csv"
+                            : "Excel file (*.xlsx)|*.xlsx",
+                        DefaultExt = exportDialog.SelectedFormat == ExportFormat.CSV
+                            ? ".csv"
+                            : ".xlsx"
+                    };
+
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        // Esporta nel formato selezionato
+                        if (exportDialog.SelectedFormat == ExportFormat.CSV)
+                        {
+                            ExportToCsv(calls, saveFileDialog.FileName);
+                        }
+                        else
+                        {
+                            ExportToExcel(calls, saveFileDialog.FileName);
+                        }
+
+                        MessageBox.Show($"Dati esportati con successo in: {saveFileDialog.FileName}",
+                            "Esportazione completata", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore durante l'esportazione: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task<List<Chiamata>> GetFilteredCalls()
+        {
+            // Ottieni le chiamate filtrate per numero se presente
+            List<Chiamata> calls;
+            string phoneNumber = TxtFilterNumber.Text.Trim();
+
+            if (!string.IsNullOrEmpty(phoneNumber))
+            {
+                calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
+            }
+            else
+            {
+                calls = await _apiService.GetAllCallsAsync();
+            }
+
+            // Filtra per data se selezionata
+            if (DatePickerFrom.SelectedDate != null || DatePickerTo.SelectedDate != null)
+            {
+                DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.MinValue;
+                DateTime toDate = DatePickerTo.SelectedDate ?? DateTime.MaxValue;
+
+                calls = calls.Where(c => c.DataArrivoChiamata >= fromDate &&
+                                       c.DataArrivoChiamata <= toDate).ToList();
+            }
+
+            return calls?.OrderByDescending(c => c.DataArrivoChiamata).ToList();
+        }
+
+        private void ExportToCsv(List<Chiamata> calls, string filePath)
+        {
+            var sb = new StringBuilder();
+
+            // Intestazioni
+            sb.AppendLine("Tipo;Numero Chiamante;Numero Chiamato;Data Arrivo;Data Fine;Località;Ragione Sociale Chiamante;Ragione Sociale Chiamato");
+
+            // Dati
+            foreach (var call in calls)
+            {
+                sb.AppendLine($"{EscapeCsv(call.TipoChiamata)};" +
+                              $"{EscapeCsv(call.NumeroChiamante)};" +
+                              $"{EscapeCsv(call.NumeroChiamato)};" +
+                              $"{call.DataArrivoChiamata:dd/MM/yyyy HH:mm:ss};" +
+                              $"{call.DataFineChiamata:dd/MM/yyyy HH:mm:ss};" +
+                              $"{EscapeCsv(call.Locazione)};" +
+                              $"{EscapeCsv(call.RagioneSocialeChiamante)};" +
+                              $"{EscapeCsv(call.RagioneSocialeChiamato)}");
+            }
+
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+        }
+
+        private string EscapeCsv(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            return value.Contains(";") ? $"\"{value}\"" : value;
+        }
+
+        private void ExportToExcel(List<Chiamata> calls, string filePath)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Chiamate");
+
+                // Intestazioni
+                worksheet.Cell(1, 1).Value = "Tipo";
+                worksheet.Cell(1, 2).Value = "Numero Chiamante";
+                worksheet.Cell(1, 3).Value = "Numero Chiamato";
+                worksheet.Cell(1, 4).Value = "Data Arrivo";
+                worksheet.Cell(1, 5).Value = "Data Fine";
+                worksheet.Cell(1, 6).Value = "Località";
+                worksheet.Cell(1, 7).Value = "Ragione Sociale Chiamante";
+                worksheet.Cell(1, 8).Value = "Ragione Sociale Chiamato";
+
+                // Dati
+                for (int i = 0; i < calls.Count; i++)
+                {
+                    var call = calls[i];
+                    worksheet.Cell(i + 2, 1).Value = call.TipoChiamata;
+                    worksheet.Cell(i + 2, 2).Value = call.NumeroChiamante;
+                    worksheet.Cell(i + 2, 3).Value = call.NumeroChiamato;
+                    worksheet.Cell(i + 2, 4).Value = call.DataArrivoChiamata;
+                    worksheet.Cell(i + 2, 5).Value = call.DataFineChiamata;
+                    worksheet.Cell(i + 2, 6).Value = call.Locazione;
+                    worksheet.Cell(i + 2, 7).Value = call.RagioneSocialeChiamante;
+                    worksheet.Cell(i + 2, 8).Value = call.RagioneSocialeChiamato;
+
+                    // Formatta le date
+                    worksheet.Cell(i + 2, 4).Style.DateFormat.Format = "dd/MM/yyyy HH:mm:ss";
+                    worksheet.Cell(i + 2, 5).Style.DateFormat.Format = "dd/MM/yyyy HH:mm:ss";
+                }
+
+                // Auto-adatta le colonne
+                worksheet.Columns().AdjustToContents();
+
+                workbook.SaveAs(filePath);
+            }
         }
     }
 }

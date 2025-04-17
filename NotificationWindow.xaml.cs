@@ -12,6 +12,9 @@ namespace ClientCentralino_vs2
         private readonly Chiamata _call;
         private readonly Action<int> _onOpenInMainApp;
 
+        public TimeSpan Duration { get; internal set; }
+        // public NotificationPosition NotificationWindow.Position { get; internal set; }
+
         public NotificationWindow(ApiService apiService, Chiamata call, Action<int> onOpenInMainApp)
         {
             InitializeComponent();
@@ -41,6 +44,10 @@ namespace ClientCentralino_vs2
             // Inizializza la ComboBox con le località
             InitializeLocationsComboBox();
         }
+
+        //public NotificationWindow(Chiamata previewCall)
+        //{
+        //}
 
         private async void InitializeLocationsComboBox()
         {

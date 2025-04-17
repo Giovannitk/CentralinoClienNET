@@ -15,6 +15,7 @@ using Microsoft.Win32;
 using System.IO;
 using System.Text;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace ClientCentralino_vs2
 {
@@ -659,14 +660,14 @@ namespace ClientCentralino_vs2
                         Title = "In entrata",
                         Values = new ChartValues<double> { stats.Inbound },
                         DataLabels = true,
-                        Fill = new SolidColorBrush(Color.FromRgb(0, 122, 204)),
+                        Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 122, 204)),
                     },
                     new PieSeries
                     {
                         Title = "In uscita",
                         Values = new ChartValues<double> { stats.Outbound },
                         DataLabels = true,
-                        Fill = new SolidColorBrush(Color.FromRgb(100, 180, 255))
+                        Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(100, 180, 255))
                     }
                 };
 
@@ -677,28 +678,28 @@ namespace ClientCentralino_vs2
                         Title = $"Più chiamato: {stats.TopNumCallsInbound?.Key}",
                         Values = new ChartValues<double> { stats.TopNumCallsInbound?.Value ?? 0 },
                         DataLabels = true,
-                        Fill = new SolidColorBrush(Color.FromRgb(200, 100, 100))
+                        Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(200, 100, 100))
                     },
                     new PieSeries
                     {
                         Title = $"Ha chiamato di più: {stats.TopNumCallsOutbound?.Key}",
                         Values = new ChartValues<double> { stats.TopNumCallsOutbound?.Value ?? 0 },
                         DataLabels = true,
-                        Fill = new SolidColorBrush(Color.FromRgb(100, 200, 100))
+                        Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(100, 200, 100))
                     },
                     new PieSeries
                     {
                         Title = $"Più chiamato in uscita: {stats.MostCalledInOutbound?.Key}",
                         Values = new ChartValues<double> { stats.MostCalledInOutbound?.Value ?? 0 },
                         DataLabels = true,
-                        Fill = new SolidColorBrush(Color.FromRgb(255, 140, 140))
+                        Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 140))
                     },
                     new PieSeries
                     {
                         Title = $"Ha chiamato di più in entrata: {stats.TopCallerInInbound?.Key}",
                         Values = new ChartValues<double> { stats.TopCallerInInbound?.Value ?? 0 },
                         DataLabels = true,
-                        Fill = new SolidColorBrush(Color.FromRgb(140, 255, 140))
+                        Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(140, 255, 140))
                     }
                 };
 
@@ -743,19 +744,19 @@ namespace ClientCentralino_vs2
                 }
 
                 // Assegna colori (con colore grigio per "Altri comuni")
-                var colori = new List<Color>
+                var colori = new List<System.Windows.Media.Color>
                 {
-                    Color.FromRgb(255, 180, 0),  // arancione
-                    Color.FromRgb(0, 150, 255),   // blu
-                    Color.FromRgb(50, 200, 100),  // verde
-                    Color.FromRgb(200, 50, 150),  // rosa
-                    Color.FromRgb(150, 100, 255), // viola
-                    Color.FromRgb(255, 120, 0),   // arancione scuro
-                    Color.FromRgb(0, 100, 200),   // blu scuro
-                    Color.FromRgb(100, 180, 50),  // verde scuro
-                    Color.FromRgb(180, 30, 120),  // magenta
-                    Color.FromRgb(120, 80, 220),  // lilla
-                    Color.FromRgb(150, 150, 150)  // grigio (per "Altri comuni")
+                    System.Windows.Media.Color.FromRgb(255, 180, 0),  // arancione
+                    System.Windows.Media.Color.FromRgb(0, 150, 255),   // blu
+                    System.Windows.Media.Color.FromRgb(50, 200, 100),  // verde
+                    System.Windows.Media.Color.FromRgb(200, 50, 150),  // rosa
+                    System.Windows.Media.Color.FromRgb(150, 100, 255), // viola
+                    System.Windows.Media.Color.FromRgb(255, 120, 0),   // arancione scuro
+                    System.Windows.Media.Color.FromRgb(0, 100, 200),   // blu scuro
+                    System.Windows.Media.Color.FromRgb(100, 180, 50),  // verde scuro
+                    System.Windows.Media.Color.FromRgb(180, 30, 120),  // magenta
+                    System.Windows.Media.Color.FromRgb(120, 80, 220),  // lilla
+                    System.Windows.Media.Color.FromRgb(150, 150, 150)  // grigio (per "Altri comuni")
                 };
 
                 for (int i = 0; i < PieSeries3.Count; i++)
@@ -779,7 +780,7 @@ namespace ClientCentralino_vs2
                     {
                         Title = "Chiamate giornaliere",
                         Values = new ChartValues<int>(dailyStats.Select(d => d.Count)),
-                        Stroke = new SolidColorBrush(Color.FromRgb(0, 122, 204)),
+                        Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 122, 204)),
                         Fill = Brushes.Transparent,
                         PointGeometry = DefaultGeometries.Circle,
                         PointGeometrySize = 10,
@@ -993,9 +994,18 @@ namespace ClientCentralino_vs2
 
             if (incompleteContacts.Any())
             {
+                var window = new Window
+                {
+                    Title = "Attenzione - Contatti da completare",
+                    Width = 800,
+                    Height = 400,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+
+                // Costruisci il messaggio
                 var message = new StringBuilder();
                 message.AppendLine("Contatti da completare:");
-                message.AppendLine("");
+                message.AppendLine();
                 message.AppendLine("Numero".PadRight(15) + "Interno".PadRight(10) + "Rag. Sociale".PadRight(25) + "Città");
 
                 foreach (var contatto in incompleteContacts)
@@ -1008,7 +1018,44 @@ namespace ClientCentralino_vs2
                     );
                 }
 
-                MessageBox.Show(message.ToString(), "Attenzione", MessageBoxButton.OK, MessageBoxImage.Warning);
+                var textBlock = new TextBlock
+                {
+                    FontFamily = new System.Windows.Media.FontFamily("Courier New"),
+                    TextWrapping = TextWrapping.NoWrap,
+                    Text = message.ToString()
+                };
+
+                var scrollViewer = new ScrollViewer
+                {
+                    Content = textBlock,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    Margin = new Thickness(10)
+                };
+
+                // Usa un Grid come contenitore principale
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                // Aggiungi lo ScrollViewer e il Button al Grid
+                Grid.SetRow(scrollViewer, 0);
+                grid.Children.Add(scrollViewer);
+
+                var button = new Button
+                {
+                    Content = "OK",
+                    Width = 80,
+                    Margin = new Thickness(0, 0, 0, 10),
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                button.Click += (s, e) => window.Close();
+
+                Grid.SetRow(button, 1);
+                grid.Children.Add(button);
+
+                window.Content = grid;
+                window.ShowDialog();
             }
         }
 
@@ -1019,26 +1066,90 @@ namespace ClientCentralino_vs2
         {
             var contatti = await _apiService.GetIncompleteContactsAsync();
 
-            if (TooltipContattiIncompleti != null)
+            if (TooltipContentTextBlock != null)
             {
-                if (contatti.Any())
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    var sb = new StringBuilder();
-                    sb.AppendLine("Contatti da completare:\n");
-
-                    foreach (var c in contatti)
+                    if (contatti.Any())
                     {
-                        sb.AppendLine($"• {c.NumeroContatto} | Int: {c.Interno} | {c.RagioneSociale ?? "NULL"} | {c.Citta ?? "NULL"}");
+                        var sb = new StringBuilder();
+                        sb.AppendLine("CONTATTI INCOMPLETI:");
+                        sb.AppendLine();
+                        sb.AppendLine("Numero".PadRight(15) + "Interno".PadRight(10) + "Rag. Sociale".PadRight(30) + "Città");
+                        sb.AppendLine(new string('-', 70));
+
+                        foreach (var c in contatti)
+                        {
+                            sb.AppendLine(
+                                (c.NumeroContatto ?? "NULL").PadRight(15) +
+                                (c.Interno.ToString() ?? "NULL").PadRight(10) +
+                                (c.RagioneSociale ?? "NULL").PadRight(30) +
+                                (c.Citta ?? "NULL")
+                            );
+                        }
+
+                        TooltipContentTextBlock.Text = sb.ToString();
+                    }
+                    else
+                    {
+                        TooltipContentTextBlock.Text = "Tutti i contatti sono completi.";
                     }
 
-                    ((TextBlock)TooltipContattiIncompleti.Content).Text = sb.ToString();
-                }
-                else
-                {
-                    ((TextBlock)TooltipContattiIncompleti.Content).Text = "Tutti i contatti sono completi.";
-                }
+                    // Forza il refresh del layout
+                    TooltipContentTextBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    TooltipContentTextBlock.Arrange(new Rect(TooltipContentTextBlock.DesiredSize));
+                }, System.Windows.Threading.DispatcherPriority.Render);
             }
         }
 
+
+        private bool ShouldNotify(Chiamata call, NotificationSettings nS)
+        {
+            if (!nS.Enabled)
+                return false;
+
+            switch (nS.FilterType)
+            {
+                case 0: // Tutti
+                    return true;
+                case 1: // Numeri specifici
+                    return true; //nS.Contains(call.NumeroChiamante);
+                case 2: // Ragioni sociali
+                    return true;//nS.Any(name =>
+                           //call.RagioneSocialeChiamante.Contains(name, StringComparison.OrdinalIgnoreCase));
+                case 3: // In rubrica
+                    return true; //_contactService.IsInContacts(call.CallerNumber);
+                default:
+                    return false;
+            }
+        }
+
+
+        private void BtnPreviewNotification_Click(object sender, RoutedEventArgs e)
+        {
+            var previewCall = new Chiamata
+            {
+                NumeroChiamante = "0123456789",
+                DataArrivoChiamata = DateTime.Now,
+                RagioneSocialeChiamante = "CHIAMATA DI PROVA"
+            };
+
+            //var window = new NotificationWindow(previewCall)
+            //{
+            //    Duration = TimeSpan.FromSeconds(SliderNotificationDuration.Value),
+            //    Position = (NotificationPosition)CbNotificationPosition.SelectedIndex
+            //};
+            //window.Show();
+
+            MessageBox.Show("Cliccato il bottone per configurare le notifiche");        
+        }
+
+        private void BtnImportContacts_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Cliccato il bottone per importare i contatti");
+        }
+
     }
+
+    
 }

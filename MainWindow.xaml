@@ -306,26 +306,32 @@
                             <DockPanel LastChildFill="True">
                                 <!-- Tooltip destra -->
                                 <TextBlock DockPanel.Dock="Right"
-                       Text="ⓘ Contatti incompleti"
-                       Foreground="DarkOrange"
-                       VerticalAlignment="Stretch" 
-                       HorizontalAlignment="Right">
+                                    Text="ⓘ Contatti incompleti"
+                                    Foreground="DarkOrange"
+                                    VerticalAlignment="Stretch" 
+                                    HorizontalAlignment="Right">
                                     <TextBlock.ToolTip>
                                         <ToolTip x:Name="TooltipContattiIncompleti"
-                                                 MaxWidth="400"
-                                                 Padding="10"
-                                                 Background="LightYellow"
-                                                 Foreground="Black">
-                                            <TextBlock Text="Caricamento contatti incompleti..." TextWrapping="Wrap"/>
-                                            </ToolTip>
-                                        </TextBlock.ToolTip>
-                                    </TextBlock>
+                                             MaxWidth="500"
+                                             Background="LightYellow"
+                                             Foreground="Black">
+                                            <Border Width="480" Height="280">
+                                                <!-- Dimensioni fisse leggermente inferiori al MaxHeight/MaxWidth -->
+                                                <TextBlock x:Name="TooltipContentTextBlock" 
+                                                       Text="Caricamento contatti incompleti..." 
+                                                       TextWrapping="Wrap"
+                                                       FontFamily="Courier New"
+                                                       Margin="5"/>
+                                            </Border>
+                                        </ToolTip>
+                                    </TextBlock.ToolTip>
+        </TextBlock>
 
                                 <!-- Titolo sinistra -->
                                 <TextBlock Text="Dettagli Contatto"
-                                       FontWeight="Bold"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,20,0"/>
+                   FontWeight="Bold"
+                   VerticalAlignment="Center"
+                   Margin="0,0,20,0"/>
                             </DockPanel>
                         </GroupBox.Header>
 
@@ -379,7 +385,7 @@
             <!-- Statistiche Tab - Versione con 2 righe principali -->
             <TabItem Header="STATISTICHE" Style="{StaticResource LightModernTabItem}">
                 <Grid Margin="0,10,0,0">
-                    
+
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <!-- Filtri -->
@@ -427,7 +433,7 @@
                     </Border>
 
                     <!-- SECONDA RIGA: Tutti gli altri grafici in stack verticale -->
-                            <!-- SECONDA RIGA: Grafico a torta + Grafico a barre affiancati -->
+                    <!-- SECONDA RIGA: Grafico a torta + Grafico a barre affiancati -->
                     <Grid Grid.Row="2" Margin="0,5,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="0.15*"/>
@@ -492,6 +498,87 @@
                         </Border>
                     </Grid>
 
+                </Grid>
+            </TabItem>
+
+            <!-- Impostazioni Tab -->
+            <TabItem Header="IMPOSTAZIONI" Style="{StaticResource LightModernTabItem}">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Sezione Notifiche Desktop -->
+                    <GroupBox Header="Configurazione Notifiche Desktop" Grid.Row="0" Style="{StaticResource LightModernGroupBox}">
+                        <Grid Margin="5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Abilita notifiche -->
+                            <CheckBox x:Name="CbEnableDesktopNotifications" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                          Content="Abilita notifiche desktop" Margin="0,0,0,10"/>
+
+                            <!-- Filtri per chiamate in entrata -->
+                            <TextBlock Text="Filtri chiamate in entrata:" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" 
+                           FontWeight="Bold" Margin="0,10,0,5"/>
+
+                            <!-- Filtro per numero chiamante -->
+                            <TextBlock Text="Mostra notifiche per chiamanti:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+                            <ComboBox x:Name="CbCallerFilterType" Grid.Row="2" Grid.Column="1" Margin="0,0,0,5" SelectedIndex="0">
+                                <ComboBoxItem Content="Tutti i chiamanti"/>
+                                <ComboBoxItem Content="Solo numeri specifici"/>
+                                <ComboBoxItem Content="Solo ragioni sociali specifiche"/>
+                                <ComboBoxItem Content="Solo chiamanti in rubrica"/>
+                            </ComboBox>
+
+                            <!-- Lista numeri/ragioni sociali da notificare -->
+                            <TextBlock Text="Numeri/Ragioni sociali:" Grid.Row="3" Grid.Column="0" VerticalAlignment="Top" Margin="0,5,10,5"/>
+                            <TextBox x:Name="TxtNumbersToNotify" Grid.Row="3" Grid.Column="1" Margin="0,0,0,5" 
+                         Style="{StaticResource LightModernTextBox}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"
+                         ToolTip="Inserisci numeri o ragioni sociali (uno per riga)"/>
+                            <Button x:Name="BtnImportContacts" Grid.Row="3" Grid.Column="2" Content="Importa" Width="80" Margin="10,0,0,5" 
+                        Style="{StaticResource LightModernButton}" Click="BtnImportContacts_Click"/>
+
+                            <!-- Durata notifica -->
+                            <TextBlock Text="Durata notifica (sec):" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+                            <Slider x:Name="SliderNotificationDuration" Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="600" Value="1" 
+                        Margin="0,0,0,5" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                            <TextBlock Text="{Binding Value, ElementName=SliderNotificationDuration, StringFormat={}{0} secondi}" 
+                           Grid.Row="4" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,5"/>
+
+                            <!-- Posizione notifica -->
+                            <TextBlock Text="Posizione notifica:" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
+                            <ComboBox x:Name="CbNotificationPosition" Grid.Row="5" Grid.Column="1" Margin="0,0,0,5" SelectedIndex="0">
+                                <ComboBoxItem Content="In alto a destra"/>
+                                <ComboBoxItem Content="In basso a destra"/>
+                                <ComboBoxItem Content="In alto a sinistra"/>
+                                <ComboBoxItem Content="In basso a sinistra"/>
+                            </ComboBox>
+
+                            <!-- Anteprima notifica -->
+                            <Button x:Name="BtnPreviewNotification" Grid.Row="6" Grid.Column="1" Content="Anteprima Notifica" Width="150" 
+                        HorizontalAlignment="Left" Margin="0,10,0,0" Style="{StaticResource LightModernButton}" 
+                        Click="BtnPreviewNotification_Click"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Sezione Configurazione Generale (rimane invariata) -->
+                    <GroupBox Header="Configurazione Generale" Grid.Row="1" Style="{StaticResource LightModernGroupBox}" Margin="0,10,0,0">
+                        <!-- ... (il resto rimane uguale) ... -->
+                    </GroupBox>
                 </Grid>
             </TabItem>
 

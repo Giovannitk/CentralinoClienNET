@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using ClientCentralino_vs2.Models;
 using ClientCentralino_vs2.Services;
 using System.Media;
-using System.Windows.Threading;
 using LiveCharts;
 using LiveCharts.Wpf;
 using System.ComponentModel;
@@ -15,7 +12,6 @@ using Microsoft.Win32;
 using System.IO;
 using System.Text;
 using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace ClientCentralino_vs2
 {
@@ -198,6 +194,8 @@ namespace ClientCentralino_vs2
             // Avvia il servizio di notifica
             _notificationService.Start(OnNewCallReceived);
 
+            LoadSettings();
+
 
             // Inizializzazione Charts
             _ = InitializeChartsAsync();
@@ -281,14 +279,59 @@ namespace ClientCentralino_vs2
         }
 
         // Metodo per aggiornare le chiamate e ritornare il risultato
+        //private async System.Threading.Tasks.Task<List<Chiamata>> RefreshCalls()
+        //{
+        //    try
+        //    {
+        //        var calls = await _apiService.GetAllCallsAsync();
+        //        // Ordina le chiamate per data in ordine decrescente (dalla più recente alla più vecchia)
+        //        //DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
+        //        //return calls;
+
+        //        // Filtra le chiamate con durata > 15 secondi
+        //        var filteredCalls = calls
+        //            .Where(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds > 15)
+        //            .OrderByDescending(c => c.DataArrivoChiamata)
+        //            .ToList();
+
+        //        DgCalls.ItemsSource = filteredCalls;
+        //        return filteredCalls;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Errore nell'aggiornamento delle chiamate: {ex.Message}", "Errore",
+        //            MessageBoxButton.OK, MessageBoxImage.Error);
+        //        return null;
+        //    }
+        //}
+
+        private void LoadSettings()
+        {
+            // Imposta il valore dello slider con il valore salvato (15 se non impostato)
+            SliderMinCallDuration.Value = Settings1.Default.MinCallDuration;
+        }
+
+
+
         private async System.Threading.Tasks.Task<List<Chiamata>> RefreshCalls()
         {
             try
             {
                 var calls = await _apiService.GetAllCallsAsync();
-                // Ordina le chiamate per data in ordine decrescente (dalla più recente alla più vecchia)
-                DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
-                return calls;
+
+                // Recupera il valore configurato (default 15 se non impostato)
+                double minDuration = Settings1.Default.MinCallDuration > 0
+                                    ? Settings1.Default.MinCallDuration
+                                    : 15;
+
+                // Filtra le chiamate con durata > del valore configurato
+                var filteredCalls = calls
+                    .Where(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds > minDuration)
+                    .OrderByDescending(c => c.DataArrivoChiamata)
+                    .ToList();
+
+                DgCalls.ItemsSource = filteredCalls;
+                return filteredCalls;
             }
             catch (Exception ex)
             {
@@ -418,6 +461,15 @@ namespace ClientCentralino_vs2
                 MessageBox.Show($"Errore nella ricerca del contatto: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private async void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
+        {
+            Settings1.Default.MinCallDuration = (int)SliderMinCallDuration.Value;
+            Settings1.Default.Save();
+            await RefreshCalls(); // Ricarica i dati dopo il salvataggio
+            MessageBox.Show("Impostazioni salvate e chiamate aggiornate!", "Salvataggio", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
 
         // Funzione salvataggio di un contatto
         private async void BtnSaveContact_Click(object sender, RoutedEventArgs e)

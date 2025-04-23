@@ -27,14 +27,35 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header con icona e titolo -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
-                <Path Data="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z" 
-                      Fill="#FF007ACC" Stretch="Uniform" Width="24" Height="24" Margin="0,0,10,0"/>
-                <TextBlock Text="Nuova chiamata ricevuta!" 
-                           FontWeight="SemiBold" FontSize="18" 
-                           Foreground="#FF333333"/>
-            </StackPanel>
+            <!-- Header con icona, titolo e pulsanti di controllo -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Path Data="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z" 
+                          Fill="#FF007ACC" Stretch="Uniform" Width="24" Height="24" Margin="0,0,10,0"/>
+                    <TextBlock Text="Nuova chiamata ricevuta!" 
+                               FontWeight="SemiBold" FontSize="18" 
+                               Foreground="#FF333333"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnMinimize" Content="_" 
+                            Width="20" Height="20" Margin="2,0"
+                            Click="BtnMinimize_Click"
+                            Style="{StaticResource LightModernButtonStyle}"
+                            ToolTip="Minimizza"/>
+                    <!-- <Button x:Name="BtnClose" Content="X" 
+                            Width="20" Height="20" Margin="2,0"
+                            Click="BtnClose_Click"
+                            Style="{StaticResource LightModernButtonStyle}"
+                            ToolTip="Chiudi"/> -->
+                </StackPanel>
+            </Grid>
 
             <!-- Dettagli chiamata -->
             <Grid Grid.Row="1" Margin="0,0,0,10">
@@ -124,7 +145,7 @@
                 <Button x:Name="BtnOpenApp" Content="Apri Applicazione" Width="140" 
                         Click="BtnOpenApp_Click" Margin="0,0,10,0"
                         Style="{StaticResource LightModernButtonStyle}"/>
-                <Button x:Name="BtnClose" Content="Chiudi" Width="100" 
+                <Button x:Name="BtnCloseBottom" Content="Chiudi" Width="100" 
                         Click="BtnClose_Click"
                         Style="{StaticResource LightModernButtonStyle}"/>
             </StackPanel>

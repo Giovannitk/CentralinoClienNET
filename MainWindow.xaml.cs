@@ -194,6 +194,8 @@ namespace ClientCentralino_vs2
             // Avvia il servizio di notifica
             _notificationService.Start(OnNewCallReceived);
 
+            _ = RefreshCalls();
+
             LoadSettings();
 
 
@@ -210,7 +212,7 @@ namespace ClientCentralino_vs2
 
         }
 
-        private void OnNewCallReceived(Chiamata call)
+        private async void OnNewCallReceived(Chiamata call)
         {
             try
             {
@@ -224,7 +226,7 @@ namespace ClientCentralino_vs2
                 // Aggiorna la griglia chiamate se è visibile
                 if (TabControl.SelectedIndex == 0)
                 {
-                    RefreshCalls();
+                    await RefreshCalls();
                 }
             }
             catch (Exception ex)
@@ -319,14 +321,14 @@ namespace ClientCentralino_vs2
             {
                 var calls = await _apiService.GetAllCallsAsync();
 
-                // Recupera il valore configurato (default 15 se non impostato)
+                // Recupera il valore configurato (default 5 se non impostato)
                 double minDuration = Settings1.Default.MinCallDuration > 0
                                     ? Settings1.Default.MinCallDuration
-                                    : 15;
+                                    : 5;
 
                 // Filtra le chiamate con durata > del valore configurato
                 var filteredCalls = calls
-                    .Where(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds > minDuration)
+                    .Where(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds >= minDuration)
                     .OrderByDescending(c => c.DataArrivoChiamata)
                     .ToList();
 
@@ -531,13 +533,26 @@ namespace ClientCentralino_vs2
 
 
         // Funzione principale per visualizzare i grafici delle statistiche.
-        private async Task InitializeChartsAsync(int days = 7)
+        private async Task InitializeChartsAsync(int days = 7, TimeSpan? timeSpan = null)
         {
             var calls = await _apiService.GetAllCallsAsync();
 
             // Filtro per giorni recenti
-            var dateThreshold = DateTime.Now.AddDays(-days);
-            var recentCalls = calls.Where(c => c.DataArrivoChiamata >= dateThreshold).ToList();
+            //var dateThreshold = DateTime.Now.AddDays(-days);
+            //var recentCalls = calls.Where(c => c.DataArrivoChiamata >= dateThreshold).ToList();
+
+            // Filtro per periodo selezionato
+            IEnumerable<Chiamata> recentCalls;
+            if (timeSpan.HasValue)
+            {
+                var timeThreshold = DateTime.Now.Subtract(timeSpan.Value);
+                recentCalls = calls.Where(c => c.DataArrivoChiamata >= timeThreshold).ToList();
+            }
+            else
+            {
+                var dateThreshold = DateTime.Now.AddDays(-days);
+                recentCalls = calls.Where(c => c.DataArrivoChiamata >= dateThreshold).ToList();
+            }
 
             // Calcolo statistiche
             var topCalled = recentCalls
@@ -848,11 +863,18 @@ namespace ClientCentralino_vs2
         private async void BtnRefreshStats_Click(object sender, RoutedEventArgs e)
         {
             int days = 7; // default
+            TimeSpan? timeSpan = null;
 
             var selected = (CbTimeRange.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
             switch (selected)
             {
+                case "Ultima ora":
+                    timeSpan = TimeSpan.FromHours(1);
+                    break;
+                case "Ultime 12 ore":
+                    timeSpan = TimeSpan.FromHours(12);
+                    break;
                 case "Ultime 24 ore":
                     days = 1;
                     break;
@@ -870,8 +892,7 @@ namespace ClientCentralino_vs2
                     break;
             }
 
-            // Implementazione refresh dei dati reali
-            await InitializeChartsAsync(days);
+            await InitializeChartsAsync(days, timeSpan);
         }
 
         private string EstraiComune(string? input)

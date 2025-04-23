@@ -309,5 +309,11 @@ namespace ClientCentralino_vs2
             return null;
         }
 
+        private void BtnMinimize_Click(object sender, RoutedEventArgs e)
+        {
+            this.ShowInTaskbar = true;
+            this.WindowState = WindowState.Minimized;
+        }
+
     }
 }

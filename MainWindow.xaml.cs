@@ -577,7 +577,7 @@ namespace ClientCentralino_vs2
 
 
         // Funzione principale per visualizzare i grafici delle statistiche.
-        private async Task InitializeChartsAsync(int days = 7, TimeSpan? timeSpan = null)
+        private async Task InitializeChartsAsync(int days = 1, TimeSpan? timeSpan = null)
         {
             var calls = await _apiService.GetAllCallsAsync();
 
@@ -906,7 +906,7 @@ namespace ClientCentralino_vs2
 
         private async void BtnRefreshStats_Click(object sender, RoutedEventArgs e)
         {
-            int days = 7; // default
+            int days = 1; // default
             TimeSpan? timeSpan = null;
 
             var selected = (CbTimeRange.SelectedItem as ComboBoxItem)?.Content?.ToString();

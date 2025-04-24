@@ -532,6 +532,50 @@ namespace ClientCentralino_vs2
         }
 
 
+        // Funzione per eliminare un contatto
+        private async void BtnDeleteContact_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string phoneNumber = TxtContactNumber.Text.Trim();
+
+                if (string.IsNullOrEmpty(phoneNumber))
+                {
+                    MessageBox.Show("Nessun numero da eliminare.", "Errore", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var result = MessageBox.Show($"Sei sicuro di voler eliminare il contatto {phoneNumber}?", "Conferma eliminazione", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    bool deleted = await _apiService.DeleteContactAsync(phoneNumber);
+
+                    if (deleted)
+                    {
+                        MessageBox.Show("Contatto eliminato con successo.", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Pulisci i campi
+                        TxtContactNumber.Clear();
+                        TxtContactCompany.Clear();
+                        TxtContactCity.Clear();
+                        TxtContactInternal.Clear();
+                        DgContactCalls.ItemsSource = null;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Impossibile eliminare il contatto.", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore nell'eliminazione del contatto: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
         // Funzione principale per visualizzare i grafici delle statistiche.
         private async Task InitializeChartsAsync(int days = 7, TimeSpan? timeSpan = null)
         {

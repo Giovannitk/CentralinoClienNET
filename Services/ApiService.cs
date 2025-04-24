@@ -154,5 +154,20 @@ namespace ClientCentralino_vs2.Services
         }
 
 
+        public async Task<bool> DeleteContactAsync(string phoneNumber)
+        {
+            try
+            {
+                HttpResponseMessage response = await _client.DeleteAsync($"api/Call/delete-contact?phoneNumber={phoneNumber}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Errore API nell'eliminazione del contatto: {ex.Message}");
+                return false;
+            }
+        }
+
+
     }
 }

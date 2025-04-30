@@ -15,7 +15,7 @@ namespace ClientCentralino_vs2.Services
         public ApiService()
         {
             _client = new HttpClient();
-            _client.BaseAddress = new Uri("https://localhost:7186/");
+            _client.BaseAddress = new Uri("http://10.36.150.250:5000/");
         }
 
         public async Task<List<Chiamata>> GetAllCallsAsync()
@@ -25,6 +25,7 @@ namespace ClientCentralino_vs2.Services
                 HttpResponseMessage response = await _client.GetAsync("api/Call/get-all-calls");
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
+                //Console.WriteLine(json);
                 return JsonConvert.DeserializeObject<List<Chiamata>>(json);
             }
             catch (Exception ex)
@@ -168,6 +169,40 @@ namespace ClientCentralino_vs2.Services
             }
         }
 
+        public async Task<bool> DeleteChiamataByNumeriAsync(string callerNumber, string calledNumber, DateTime endCall)
+        {
+            try
+            {
+                // Formatta la data per l'URL
+                string formattedDate = endCall.ToString("o"); // ISO 8601 format
+                HttpResponseMessage response = await _client.DeleteAsync(
+                    $"api/Call/delete-chiamata?callerNumber={Uri.EscapeDataString(callerNumber)}" +
+                    $"&calledNumber={Uri.EscapeDataString(calledNumber)}" +
+                    $"&endCall={Uri.EscapeDataString(formattedDate)}");
 
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Errore API nell'eliminazione della chiamata: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteChiamataByUniqueIdAsync(string uniqueId)
+        {
+            try
+            {
+                HttpResponseMessage response = await _client.DeleteAsync(
+                    $"api/Call/delete-chiamata-by-id?uniqueId={Uri.EscapeDataString(uniqueId)}");
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Errore API nell'eliminazione della chiamata: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

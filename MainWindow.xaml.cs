@@ -12,6 +12,8 @@ using Microsoft.Win32;
 using System.IO;
 using System.Text;
 using ClosedXML.Excel;
+using System.Globalization;
+using System.Windows.Data;
 
 namespace ClientCentralino_vs2
 {
@@ -185,6 +187,7 @@ namespace ClientCentralino_vs2
             }
         }
 
+
         public MainWindow()
         {
             InitializeComponent();
@@ -315,20 +318,51 @@ namespace ClientCentralino_vs2
 
 
 
+        //private async System.Threading.Tasks.Task<List<Chiamata>> RefreshCalls()
+        //{
+        //    try
+        //    {
+        //        var calls = await _apiService.GetAllCallsAsync();
+
+        //        // Recupera il valore configurato (default 5 se non impostato)
+        //        double minDuration = Settings1.Default.MinCallDuration > 0
+        //                            ? Settings1.Default.MinCallDuration
+        //                            : 5;
+
+        //        // Filtra le chiamate con durata > del valore configurato
+        //        var filteredCalls = calls
+        //            .Where(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds >= minDuration)
+        //            .OrderByDescending(c => c.DataArrivoChiamata)
+        //            .ToList();
+
+        //        DgCalls.ItemsSource = filteredCalls;
+        //        return filteredCalls;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Errore nell'aggiornamento delle chiamate: {ex.Message}", "Errore",
+        //            MessageBoxButton.OK, MessageBoxImage.Error);
+        //        return null;
+        //    }
+        //}
         private async System.Threading.Tasks.Task<List<Chiamata>> RefreshCalls()
         {
             try
             {
                 var calls = await _apiService.GetAllCallsAsync();
 
-                // Recupera il valore configurato (default 5 se non impostato)
                 double minDuration = Settings1.Default.MinCallDuration > 0
                                     ? Settings1.Default.MinCallDuration
                                     : 5;
 
-                // Filtra le chiamate con durata > del valore configurato
+                // Usa oggi come default se nessuna data è selezionata
+                DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.Today;
+                DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
+                                    ?? DateTime.Today.AddDays(1).AddSeconds(-1);
+
                 var filteredCalls = calls
                     .Where(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds >= minDuration)
+                    .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate)
                     .OrderByDescending(c => c.DataArrivoChiamata)
                     .ToList();
 
@@ -343,23 +377,69 @@ namespace ClientCentralino_vs2
             }
         }
 
+
+        //private async void BtnFilterCalls_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        string phoneNumber = TxtFilterNumber.Text.Trim();
+        //        MessageBox.Show($"Numero inserito: {phoneNumber}");
+
+        //        if (string.IsNullOrEmpty(phoneNumber))
+        //        {
+        //            LoadAllCalls();
+        //            return;
+        //        }
+
+        //        var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
+        //        MessageBox.Show($"Numero chiamate trovate: {calls.Count}");
+
+        //        DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Errore nel filtrare le chiamate: {ex.Message}", "Errore",
+        //            MessageBoxButton.OK, MessageBoxImage.Error);
+        //    }
+        //}
+
+
         private async void BtnFilterCalls_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 string phoneNumber = TxtFilterNumber.Text.Trim();
-                MessageBox.Show($"Numero inserito: {phoneNumber}");
+
+                // Verifica se contiene solo cifre
+                if (!string.IsNullOrEmpty(phoneNumber) && !phoneNumber.All(char.IsDigit))
+                {
+                    MessageBox.Show("Inserire solo numeri nel campo 'Filtra per numero'.", "Formato non valido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.Today;
+                DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
+                                    ?? DateTime.Today.AddDays(1).AddSeconds(-1);
 
                 if (string.IsNullOrEmpty(phoneNumber))
                 {
-                    LoadAllCalls();
+                    await RefreshCalls();
                     return;
                 }
 
                 var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
-                MessageBox.Show($"Numero chiamate trovate: {calls.Count}");
 
-                DgCalls.ItemsSource = calls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
+                var filteredCalls = calls
+                    .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate)
+                    .OrderByDescending(c => c.DataArrivoChiamata)
+                    .ToList();
+
+                if (filteredCalls.Count == 0)
+                {
+                    MessageBox.Show("Nessuna chiamata trovata per il numero inserito nel range di date selezionato.", "Nessun risultato", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                DgCalls.ItemsSource = filteredCalls;
             }
             catch (Exception ex)
             {
@@ -367,6 +447,131 @@ namespace ClientCentralino_vs2
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+
+
+        private async void BtnFilterByRagioneSociale_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string ragioneSociale = TxtFilterRagioneSociale.Text.Trim().ToLower();
+                DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.Today;
+                DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
+                                    ?? DateTime.Today.AddDays(1).AddSeconds(-1);
+
+                var calls = await _apiService.GetAllCallsAsync();
+
+                var filteredCalls = calls
+                    .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate)
+                    .Where(c => !string.IsNullOrEmpty(ragioneSociale) &&
+                                ((c.RagioneSocialeChiamante != null && c.RagioneSocialeChiamante.ToLower().Contains(ragioneSociale)) ||
+                                 (c.RagioneSocialeChiamato != null && c.RagioneSocialeChiamato.ToLower().Contains(ragioneSociale))))
+                    .OrderByDescending(c => c.DataArrivoChiamata)
+                    .ToList();
+
+                if (filteredCalls.Count == 0)
+                {
+                    MessageBox.Show("Nessuna chiamata trovata per la ragione sociale inserita nel range di date selezionato.", "Nessun risultato", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                DgCalls.ItemsSource = filteredCalls;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore nel filtro per ragione sociale: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void BtnFilterByLocazione_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string locazione = TxtFilterLocazione.Text.Trim().ToLower();
+                DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.Today;
+                DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
+                                    ?? DateTime.Today.AddDays(1).AddSeconds(-1);
+
+                var calls = await _apiService.GetAllCallsAsync();
+
+                var filteredCalls = calls
+                    .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate)
+                    .Where(c => !string.IsNullOrEmpty(locazione) &&
+                                (c.Locazione != null && c.Locazione.ToLower().Contains(locazione)))
+                    .OrderByDescending(c => c.DataArrivoChiamata)
+                    .ToList();
+
+                if (filteredCalls.Count == 0)
+                {
+                    MessageBox.Show("Nessuna chiamata trovata per la locazione inserita nel range di date selezionato.", "Nessun risultato", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                DgCalls.ItemsSource = filteredCalls;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore nel filtro per locazione: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+        // funzione per il bottone per filtrare per tutti i 3 campi
+        private async void BtnFilterAll_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string numero = TxtFilterNumber.Text.Trim().ToLower();
+                string ragioneSociale = TxtFilterRagioneSociale.Text.Trim().ToLower();
+                string locazione = TxtFilterLocazione.Text.Trim().ToLower();
+
+                DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.Today;
+                DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
+                                    ?? DateTime.Today.AddDays(1).AddSeconds(-1);
+
+                var calls = await _apiService.GetAllCallsAsync();
+
+                var filteredCalls = calls
+                    .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate);
+
+                if (!string.IsNullOrEmpty(numero))
+                {
+                    filteredCalls = filteredCalls
+                        .Where(c => (c.NumeroChiamante != null && c.NumeroChiamante.ToLower().Contains(numero)) ||
+                                    (c.NumeroChiamato != null && c.NumeroChiamato.ToLower().Contains(numero)));
+                }
+
+                if (!string.IsNullOrEmpty(ragioneSociale))
+                {
+                    filteredCalls = filteredCalls
+                        .Where(c => (c.RagioneSocialeChiamante != null && c.RagioneSocialeChiamante.ToLower().Contains(ragioneSociale)) ||
+                                    (c.RagioneSocialeChiamato != null && c.RagioneSocialeChiamato.ToLower().Contains(ragioneSociale)));
+                }
+
+                if (!string.IsNullOrEmpty(locazione))
+                {
+                    filteredCalls = filteredCalls
+                        .Where(c => c.Locazione != null && c.Locazione.ToLower().Contains(locazione));
+                }
+
+                var resultList = filteredCalls.OrderByDescending(c => c.DataArrivoChiamata).ToList();
+
+                if (resultList.Count == 0)
+                {
+                    MessageBox.Show("Nessuna chiamata trovata con i filtri selezionati.", "Filtra Tutti",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                DgCalls.ItemsSource = resultList;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore nel filtro combinato: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
 
 
         private async void BtnRefreshCalls_Click(object sender, RoutedEventArgs e)
@@ -417,6 +622,8 @@ namespace ClientCentralino_vs2
             }
         }
 
+
+        // PANNELLO CONTATTI -------------------------------------------------------------------------------------
         // Funzione ricerca contatto
         private async void BtnSearchContact_Click(object sender, RoutedEventArgs e)
         {
@@ -573,9 +780,10 @@ namespace ClientCentralino_vs2
                 MessageBox.Show($"Errore nell'eliminazione del contatto: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        // ---------------------------------------------------------------------------------------------
 
 
-
+        // PANNELLO STATISTICHE ----------------------------------------------------------------------------------
         // Funzione principale per visualizzare i grafici delle statistiche.
         private async Task InitializeChartsAsync(int days = 1, TimeSpan? timeSpan = null)
         {
@@ -668,7 +876,8 @@ namespace ClientCentralino_vs2
                 //TopComune = topComune,
                 TopCallerInInbound = topCallerInbound,
                 MostCalledInOutbound = topCalledOutbound,
-                ComuniChiamanti = allComuni.Take(10).ToList()
+                //ComuniChiamanti = allComuni.Take(10).ToList()
+                ComuniChiamanti = allComuni
             };
 
             // Salva gli altri comuni (se esistono)
@@ -826,9 +1035,20 @@ namespace ClientCentralino_vs2
                 //};
 
                 // === Grafico a torta (Tutti i comuni) ===
-                PieSeries3 = new SeriesCollection();
+                //PieSeries3 = new SeriesCollection();
 
-                // Aggiungi i top 10 comuni
+                //// Aggiungi i top 10 comuni
+                //foreach (var comune in stats.ComuniChiamanti)
+                //{
+                //    PieSeries3.Add(new PieSeries
+                //    {
+                //        Title = comune.Key,
+                //        Values = new ChartValues<double> { comune.Value },
+                //        DataLabels = true,
+                //        LabelPoint = point => $"{point.Y} ({point.Participation:P1})"
+                //    });
+                //}
+                PieSeries3 = new SeriesCollection();
                 foreach (var comune in stats.ComuniChiamanti)
                 {
                     PieSeries3.Add(new PieSeries
@@ -841,18 +1061,18 @@ namespace ClientCentralino_vs2
                 }
 
                 // Aggiungi la voce "Altri" se ci sono comuni esclusi
-                if (stats.AltriComuni.Any())
-                {
-                    var altriTotal = stats.AltriComuni.Sum(c => c.Value);
+                //if (stats.AltriComuni.Any())
+                //{
+                //    var altriTotal = stats.AltriComuni.Sum(c => c.Value);
 
-                    PieSeries3.Add(new PieSeries
-                    {
-                        Title = $"Altri comuni ({stats.AltriComuni.Count})",
-                        Values = new ChartValues<double> { altriTotal },
-                        Tag = stats.AltriComuni, // Memorizza la lista nel Tag
-                        DataLabels = true
-                    });
-                }
+                //    PieSeries3.Add(new PieSeries
+                //    {
+                //        Title = $"Altri comuni ({stats.AltriComuni.Count})",
+                //        Values = new ChartValues<double> { altriTotal },
+                //        Tag = stats.AltriComuni, // Memorizza la lista nel Tag
+                //        DataLabels = true
+                //    });
+                //}
 
                 // Assegna colori (con colore grigio per "Altri comuni")
                 var colori = new List<System.Windows.Media.Color>
@@ -946,9 +1166,11 @@ namespace ClientCentralino_vs2
             var match = Regex.Match(input, @"Comune di\s+(.*)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value.Trim() : "";
         }
+        
+        
+        // ---------------------------------------------------------------------------------------------
 
-
-
+        // PANNELLO CHIAMATE --------------------------------------------------------------------------
         // Esportazione chiamate in un file
         private async void BtnExportCalls_Click(object sender, RoutedEventArgs e)
         {
@@ -1102,8 +1324,11 @@ namespace ClientCentralino_vs2
                 workbook.SaveAs(filePath);
             }
         }
+        // ---------------------------------------------------------------------------------------------
 
 
+
+        // ALTRO ------------------------------------------------------------------------------
         // Funzione per gestire la visualizzazione dei contatti incompleti all'avvio dell'app
         private async Task ShowIncompleteContactsAsync()
         {
@@ -1267,6 +1492,7 @@ namespace ClientCentralino_vs2
         }
 
     }
+
 
     
 }

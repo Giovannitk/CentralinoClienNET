@@ -8,4 +8,5 @@ namespace ClientCentralino_vs2
     public partial class App : Application
     {
     }
+
 }

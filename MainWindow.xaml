@@ -199,6 +199,36 @@
             <!-- Definizione dello stile -->
         </Style>
 
+        <Style x:Key="TextBoxWithPlaceholder" TargetType="TextBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Grid>
+                            <TextBox x:Name="textBox"
+                             Text="{TemplateBinding Text}"
+                             Background="{TemplateBinding Background}"
+                             BorderBrush="{TemplateBinding BorderBrush}"
+                             BorderThickness="{TemplateBinding BorderThickness}"
+                             Foreground="{TemplateBinding Foreground}"
+                             Padding="5"/>
+                            <TextBlock x:Name="placeholder"
+                               Text="{TemplateBinding Tag}"
+                               Foreground="Gray"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ChartBorderStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#FFCCCCCC"/>
@@ -234,16 +264,35 @@
 
                     <!-- Filtri -->
                     <GroupBox Header="Filtri" Grid.Row="0" Style="{StaticResource LightModernGroupBox}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Filtra per numero:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <TextBox x:Name="TxtFilterNumber" Width="250" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}"/>
-                            <Button x:Name="BtnFilterCalls" Background="DeepSkyBlue" Foreground="Black" Content="Filtra" Width="100" Style="{StaticResource LightModernButton}" Click="BtnFilterCalls_Click"/>
-                            <Button x:Name="BtnRefreshCalls" Background="Gainsboro" Content="Aggiorna" Width="100" Margin="10,0,0,0" Style="{StaticResource LightModernButton}" Click="BtnRefreshCalls_Click"/>
-                            <Button x:Name="BtnExportCalls" Background="Green" Foreground="White" Content="Esporta" Width="100" Margin="10,0,0,0" Style="{StaticResource LightModernButton}" Click="BtnExportCalls_Click"/>
-                            <DatePicker x:Name="DatePickerFrom" Width="120" Margin="10,0,0,0" Style="{StaticResource LightModernDatePicker}" 
-                     SelectedDateFormat="Short" ToolTip="Data inizio"/>
-                            <DatePicker x:Name="DatePickerTo" Width="120" Margin="5,0,0,0" Style="{StaticResource LightModernDatePicker}" 
-                     SelectedDateFormat="Short" ToolTip="Data fine"/>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Filtra per numero:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox x:Name="TxtFilterNumber" Width="250" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" Text="412"/>
+                                <Button x:Name="BtnFilterCalls" Background="DeepSkyBlue" Foreground="Black" Content="Filtra" Width="100" 
+                                        Style="{StaticResource LightModernButton}"  Click="BtnFilterCalls_Click"/>
+
+                                <TextBlock Text="Filtra per ragione sociale:" VerticalAlignment="Center" Margin="30,0,10,0"/>
+                                <TextBox x:Name="TxtFilterRagioneSociale" Width="250" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" Text="Negozio2"/>
+                                <Button x:Name="BtnFilterCalls2" Background="DeepSkyBlue" Foreground="Black" Content="Filtra" Width="100"
+        Style="{StaticResource LightModernButton}" Click="BtnFilterByRagioneSociale_Click"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <TextBlock Text="Filtra per località:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox x:Name="TxtFilterLocazione" Width="250" Margin="4,0,10,0" Style="{StaticResource LightModernTextBox}" Text="Negozio2"/>
+                                <Button x:Name="BtnFilterCalls3" Background="DeepSkyBlue" Foreground="Black" Content="Filtra" Width="100"
+        Style="{StaticResource LightModernButton}" Click="BtnFilterByLocazione_Click"/>
+
+                                <Button x:Name="BtnFilterAll" Background="Orange" Foreground="Black" Content="Filtra Tutti" Width="100" Margin="28,0,0,0"
+        Style="{StaticResource LightModernButton}" Click="BtnFilterAll_Click"/>
+
+                                <Button x:Name="BtnRefreshCalls" Background="Gainsboro" Content="Aggiorna" Width="100" Margin="40,0,0,0" Style="{StaticResource LightModernButton}" Click="BtnRefreshCalls_Click"/>
+                                <Button x:Name="BtnExportCalls" Background="Green" Foreground="White" Content="Esporta" Width="100" Margin="10,0,0,0" Style="{StaticResource LightModernButton}" Click="BtnExportCalls_Click"/>
+                                <DatePicker x:Name="DatePickerFrom" Width="120" Margin="10,0,0,0" Style="{StaticResource LightModernDatePicker}" 
+SelectedDateFormat="Short" ToolTip="Data inizio"/>
+                                <DatePicker x:Name="DatePickerTo" Width="120" Margin="5,0,0,0" Style="{StaticResource LightModernDatePicker}" 
+SelectedDateFormat="Short" ToolTip="Data fine"/>
+                            </StackPanel>
                         </StackPanel>
                     </GroupBox>
 
@@ -495,7 +544,9 @@
                                 <ContentControl x:Name="tooltipContainer" HorizontalAlignment="Right" VerticalAlignment="Top" 
                        Margin="0,10,10,0" Background="Transparent"/>
 
-                                <lvc:PieChart Series="{Binding PieSeries3}" LegendLocation="Bottom" InnerRadius="30" Margin="10">
+                                <Label FontSize="11">Num. chiamate dai comuni</Label>
+
+                                <lvc:PieChart Series="{Binding PieSeries3}" LegendLocation="None" InnerRadius="30" Margin="10">
                                     <lvc:PieChart.ChartLegend>
                                         <lvc:DefaultLegend BulletSize="15"/>
                                     </lvc:PieChart.ChartLegend>

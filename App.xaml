@@ -5,6 +5,7 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
 
+
         <Style TargetType="Window">
             <Setter Property="Background" Value="#FF252526"/>
             <Setter Property="Foreground" Value="#FFE0E0E0"/>

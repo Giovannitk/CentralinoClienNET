@@ -71,6 +71,26 @@ namespace ClientCentralino_vs2.Services
             }
         }
 
+        public async Task<List<Contatto>> GetAllContactsAsync()
+        {
+            try
+            {
+                HttpResponseMessage response = await _client.GetAsync("api/Call/all-contacts");
+
+                response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<List<Contatto>>(json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Errore API nel recupero dei contatti: {ex.Message}");
+                return new List<Contatto>(); // oppure null, ma meglio una lista vuota per evitare eccezioni
+            }
+        }
+
+
+
+
         public async Task<bool> AddContactAsync(Contatto contact)
         {
             try

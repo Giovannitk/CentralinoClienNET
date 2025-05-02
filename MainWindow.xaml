@@ -334,47 +334,100 @@ SelectedDateFormat="Short" ToolTip="Data fine"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Cerca contatto -->
-                    <GroupBox Header="Cerca Contatto" Grid.Row="0" Style="{StaticResource LightModernGroupBox}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                    <!-- Cerca contatto per Numero o Ragione Sociale -->
+                    <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,10">
 
-                            <TextBlock Text="Numero:" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <TextBox x:Name="TxtSearchContact" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}"/>
-                            <Button x:Name="BtnSearchContact" Background="Green" Foreground="White" Grid.Column="2" Content="Cerca" Width="100" Style="{StaticResource LightModernButton}" Click="BtnSearchContact_Click"/>
-                        </Grid>
-                    </GroupBox>
+                        <!-- Cerca per Numero -->
+                        <GroupBox Header="Cerca Contatto per Numero" Style="{StaticResource LightModernGroupBox}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Numero:" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox x:Name="TxtSearchContact" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}"/>
+                                <Button x:Name="BtnSearchContact"
+                    Background="Green"
+                    Foreground="White"
+                    Grid.Column="2"
+                    Content="Cerca"
+                    Width="100"
+                    Style="{StaticResource LightModernButton}"
+                    Click="BtnSearchContact_Click"/>
+                            </Grid>
+                        </GroupBox>
+
+                        <!-- Cerca per Ragione Sociale -->
+                        <GroupBox Header="Cerca Contatto per Ragione Sociale" Style="{StaticResource LightModernGroupBox}" Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Ragione Sociale:" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox x:Name="TxtSearchByCompany" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}"/>
+                                <Button x:Name="BtnSearchByCompany"
+                    Background="Green"
+Foreground="White"
+                    Grid.Column="2"
+                    Content="Cerca"
+                    Width="100"
+                    Style="{StaticResource LightModernButton}"
+                    Click="BtnSearchByCompany_Click"/>
+                            </Grid>
+                        </GroupBox>
+
+                    </StackPanel>
+
 
                     <!-- Dettagli contatto -->
                     <GroupBox Grid.Row="1" Style="{StaticResource LightModernGroupBox}">
                         <GroupBox.Header>
                             <DockPanel LastChildFill="True">
                                 <!-- Tooltip destra -->
-                                <TextBlock DockPanel.Dock="Right"
-                                    Text="ⓘ Contatti incompleti"
-                                    Foreground="DarkOrange"
-                                    VerticalAlignment="Stretch" 
-                                    HorizontalAlignment="Right">
-                                    <TextBlock.ToolTip>
-                                        <ToolTip x:Name="TooltipContattiIncompleti"
-                                             MaxWidth="500"
-                                             Background="LightYellow"
-                                             Foreground="Black">
-                                            <Border Width="480" Height="280">
-                                                <!-- Dimensioni fisse leggermente inferiori al MaxHeight/MaxWidth -->
-                                                <TextBlock x:Name="TooltipContentTextBlock" 
-                                                       Text="Caricamento contatti incompleti..." 
-                                                       TextWrapping="Wrap"
-                                                       FontFamily="Courier New"
-                                                       Margin="5"/>
-                                            </Border>
-                                        </ToolTip>
-                                    </TextBlock.ToolTip>
-        </TextBlock>
+                                <Button DockPanel.Dock="Right"
+        Content="Contatti Incompleti"
+        Foreground="Red"
+        Background="Orange"
+        BorderBrush="Transparent"
+        FontWeight="Bold"
+        Click="BtnShowIncompleteContacts_Click"
+        HorizontalAlignment="Right"
+        Cursor="Hand"
+        ToolTip="Visualizza l'elenco dei contatti incompleti">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="2"
+                                CornerRadius="10"
+                                Padding="4">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="border" Property="BorderBrush" Value="DarkRed"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+
+
+
 
                                 <!-- Titolo sinistra -->
                                 <TextBlock Text="Dettagli Contatto"
@@ -421,9 +474,25 @@ SelectedDateFormat="Short" ToolTip="Data fine"/>
                             </StackPanel>
                         </Grid>
                     </GroupBox>
-
+                    
                     <!-- Chiamate del contatto -->
-                    <GroupBox Header="Chiamate del Contatto" Grid.Row="2" Style="{StaticResource LightModernGroupBox}">
+                    <GroupBox Grid.Row="2" Style="{StaticResource LightModernGroupBox}">
+                        <GroupBox.Header>
+                            <DockPanel LastChildFill="True">
+                                <!-- Numero del contatto a sinistra -->
+                                <TextBlock x:Name="TxtCallHeaderContactNumber"
+                       Text=""
+                       FontWeight="Bold"
+                       Foreground="DarkSlateGray"
+                       VerticalAlignment="Center"
+                       Margin="0,0,20,0"/>
+                                <!-- Titolo a destra -->
+                                <TextBlock Text="Chiamate del Contatto"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </GroupBox.Header>
+
                         <DataGrid x:Name="DgContactCalls" Style="{StaticResource LightModernDataGrid}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Tipo" Binding="{Binding TipoChiamata}" Width="100"/>
@@ -435,6 +504,7 @@ SelectedDateFormat="Short" ToolTip="Data fine"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </GroupBox>
+
                 </Grid>
             </TabItem>
 

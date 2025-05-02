@@ -209,7 +209,7 @@ namespace ClientCentralino_vs2
             _ = ShowIncompleteContactsAsync();
 
             // Visualizzazione contatti incomppleti tramite tooltip
-            _ = UpdateIncompleteContactsTooltipAsync();
+            //_ = UpdateIncompleteContactsTooltipAsync(); // non server più
 
             DataContext = this;
 
@@ -624,7 +624,8 @@ namespace ClientCentralino_vs2
 
 
         // PANNELLO CONTATTI -------------------------------------------------------------------------------------
-        // Funzione ricerca contatto
+
+        // Funzione ricerca contatto per numero
         private async void BtnSearchContact_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -647,6 +648,16 @@ namespace ClientCentralino_vs2
                     TxtContactCity.Text = contact.Citta;
                     TxtContactInternal.Text = contact.Interno?.ToString();
 
+                    // Imposta il titolo del GroupBox con numero e (eventualmente) ragione sociale
+                    if (!string.IsNullOrWhiteSpace(contact.RagioneSociale))
+                    {
+                        TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
+                    }
+                    else
+                    {
+                        TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}]";
+                    }
+
                     // Carica le chiamate del contatto
                     var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
                     DgContactCalls.ItemsSource = calls;
@@ -661,6 +672,9 @@ namespace ClientCentralino_vs2
                     TxtContactCity.Clear();
                     TxtContactInternal.Clear();
 
+                    // Aggiorna il titolo del GroupBox solo con il numero
+                    TxtCallHeaderContactNumber.Text = $"[{phoneNumber}]";
+
                     // Pulisce la griglia delle chiamate
                     DgContactCalls.ItemsSource = null;
                 }
@@ -670,6 +684,68 @@ namespace ClientCentralino_vs2
                 MessageBox.Show($"Errore nella ricerca del contatto: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private async void BtnSearchByCompany_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string ragioneSociale = TxtSearchByCompany.Text.Trim();
+                var allContacts = await _apiService.GetAllContactsAsync();
+
+                // Se non è stata inserita nessuna ragione sociale, mostra tutti i contatti
+                var matchedContacts = string.IsNullOrEmpty(ragioneSociale)
+                    ? allContacts
+                    : allContacts
+                        .Where(c => !string.IsNullOrEmpty(c.RagioneSociale) &&
+                                    c.RagioneSociale.Equals(ragioneSociale, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                if (matchedContacts.Count == 1)
+                {
+                    var contact = matchedContacts.First();
+
+                    TxtContactNumber.Text = contact.NumeroContatto;
+                    TxtContactCompany.Text = contact.RagioneSociale;
+                    TxtContactCity.Text = contact.Citta;
+                    TxtContactInternal.Text = contact.Interno?.ToString();
+
+                    TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
+
+                    var calls = await _apiService.GetCallsByNumberAsync(contact.NumeroContatto);
+                    DgContactCalls.ItemsSource = calls;
+                }
+                else if (matchedContacts.Count > 1)
+                {
+                    TxtContactNumber.Clear();
+                    TxtContactCompany.Text = ragioneSociale;
+                    TxtContactCity.Clear();
+                    TxtContactInternal.Clear();
+                    TxtCallHeaderContactNumber.Text = string.IsNullOrEmpty(ragioneSociale)
+                        ? $"Tutti i contatti ({matchedContacts.Count})"
+                        : $"[{ragioneSociale}] - {matchedContacts.Count} contatti trovati";
+
+                    DgContactCalls.ItemsSource = matchedContacts;
+                }
+                else
+                {
+                    MessageBox.Show("Nessun contatto trovato. Puoi inserire i dati e salvarlo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    TxtContactNumber.Clear();
+                    TxtContactCompany.Text = ragioneSociale;
+                    TxtContactCity.Clear();
+                    TxtContactInternal.Clear();
+                    TxtCallHeaderContactNumber.Text = $"[{ragioneSociale}]";
+                    DgContactCalls.ItemsSource = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore nella ricerca per ragione sociale: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
 
         private async void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
         {
@@ -780,6 +856,59 @@ namespace ClientCentralino_vs2
                 MessageBox.Show($"Errore nell'eliminazione del contatto: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+
+        // Funzione per visualizzare la lista dei contatti incompleti
+        private async void BtnShowIncompleteContacts_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var contattiIncompleti = await _apiService.GetIncompleteContactsAsync();
+
+                if (contattiIncompleti == null || contattiIncompleti.Count == 0)
+                {
+                    MessageBox.Show("Nessun contatto incompleto trovato.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var finestra = new IncompleteContactsWindow(contattiIncompleti);
+                finestra.Owner = this;
+                var risultato = finestra.ShowDialog();
+
+                if (risultato == true && finestra.ContattoSelezionato != null)
+                {
+                    // Precompila i campi del pannello
+                    TxtContactNumber.Text = finestra.ContattoSelezionato.NumeroContatto;
+                    TxtContactCompany.Text = finestra.ContattoSelezionato.RagioneSociale;
+                    TxtContactCity.Text = finestra.ContattoSelezionato.Citta;
+                    TxtContactInternal.Text = finestra.ContattoSelezionato.Interno?.ToString();
+
+                    // Imposta il titolo del GroupBox con numero e (eventualmente) ragione sociale
+                    var numero = finestra.ContattoSelezionato.NumeroContatto;
+                    var ragione = finestra.ContattoSelezionato.RagioneSociale;
+                    if (!string.IsNullOrWhiteSpace(ragione))
+                    {
+                        TxtCallHeaderContactNumber.Text = $"[{numero}] ({ragione})";
+                    }
+                    else
+                    {
+                        TxtCallHeaderContactNumber.Text = $"[{numero}]";
+                    }
+
+                    // Carica anche le chiamate se vuoi
+                    var calls = await _apiService.GetCallsByNumberAsync(numero);
+                    DgContactCalls.ItemsSource = calls;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore durante il caricamento dei contatti incompleti: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
+
         // ---------------------------------------------------------------------------------------------
 
 
@@ -1402,47 +1531,48 @@ namespace ClientCentralino_vs2
         }
 
 
+        // Funzione sostituita da quella che gestisce il bottone
         // Funzione per gestire la visualizzazione dei contatti incompleti 
         // tramite tooltip nella finestra Contatti.
-        private async Task UpdateIncompleteContactsTooltipAsync()
-        {
-            var contatti = await _apiService.GetIncompleteContactsAsync();
+        //private async Task UpdateIncompleteContactsTooltipAsync()
+        //{
+        //    var contatti = await _apiService.GetIncompleteContactsAsync();
 
-            if (TooltipContentTextBlock != null)
-            {
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    if (contatti.Any())
-                    {
-                        var sb = new StringBuilder();
-                        sb.AppendLine("CONTATTI INCOMPLETI:");
-                        sb.AppendLine();
-                        sb.AppendLine("Numero".PadRight(15) + "Interno".PadRight(10) + "Rag. Sociale".PadRight(30) + "Città");
-                        sb.AppendLine(new string('-', 70));
+        //    if (TooltipContentTextBlock != null)
+        //    {
+        //        await Application.Current.Dispatcher.InvokeAsync(() =>
+        //        {
+        //            if (contatti.Any())
+        //            {
+        //                var sb = new StringBuilder();
+        //                sb.AppendLine("CONTATTI INCOMPLETI:");
+        //                sb.AppendLine();
+        //                sb.AppendLine("Numero".PadRight(15) + "Interno".PadRight(10) + "Rag. Sociale".PadRight(30) + "Città");
+        //                sb.AppendLine(new string('-', 70));
 
-                        foreach (var c in contatti)
-                        {
-                            sb.AppendLine(
-                                (c.NumeroContatto ?? "NULL").PadRight(15) +
-                                (c.Interno.ToString() ?? "NULL").PadRight(10) +
-                                (c.RagioneSociale ?? "NULL").PadRight(30) +
-                                (c.Citta ?? "NULL")
-                            );
-                        }
+        //                foreach (var c in contatti)
+        //                {
+        //                    sb.AppendLine(
+        //                        (c.NumeroContatto ?? "NULL").PadRight(15) +
+        //                        (c.Interno.ToString() ?? "NULL").PadRight(10) +
+        //                        (c.RagioneSociale ?? "NULL").PadRight(30) +
+        //                        (c.Citta ?? "NULL")
+        //                    );
+        //                }
 
-                        TooltipContentTextBlock.Text = sb.ToString();
-                    }
-                    else
-                    {
-                        TooltipContentTextBlock.Text = "Tutti i contatti sono completi.";
-                    }
+        //                TooltipContentTextBlock.Text = sb.ToString();
+        //            }
+        //            else
+        //            {
+        //                TooltipContentTextBlock.Text = "Tutti i contatti sono completi.";
+        //            }
 
-                    // Forza il refresh del layout
-                    TooltipContentTextBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    TooltipContentTextBlock.Arrange(new Rect(TooltipContentTextBlock.DesiredSize));
-                }, System.Windows.Threading.DispatcherPriority.Render);
-            }
-        }
+        //            // Forza il refresh del layout
+        //            TooltipContentTextBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        //            TooltipContentTextBlock.Arrange(new Rect(TooltipContentTextBlock.DesiredSize));
+        //        }, System.Windows.Threading.DispatcherPriority.Render);
+        //    }
+        //}
 
 
         private bool ShouldNotify(Chiamata call, NotificationSettings nS)

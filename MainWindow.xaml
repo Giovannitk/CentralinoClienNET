@@ -254,7 +254,7 @@
                     Style="{StaticResource LightModernTabControl}">
 
             <!-- Chiamate Tab -->
-            <TabItem Header="CHIAMATE" Style="{StaticResource LightModernTabItem}">
+            <TabItem x:Name="ChiamateTabItem" Header="CHIAMATE" Style="{StaticResource LightModernTabItem}">
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -267,19 +267,19 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Filtra per numero:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox x:Name="TxtFilterNumber" Width="250" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" Text="412"/>
+                                <TextBox x:Name="TxtFilterNumber" Width="250" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" Text=""/>
                                 <Button x:Name="BtnFilterCalls" Background="DeepSkyBlue" Foreground="Black" Content="Filtra" Width="100" 
                                         Style="{StaticResource LightModernButton}"  Click="BtnFilterCalls_Click"/>
 
                                 <TextBlock Text="Filtra per ragione sociale:" VerticalAlignment="Center" Margin="30,0,10,0"/>
-                                <TextBox x:Name="TxtFilterRagioneSociale" Width="250" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" Text="Negozio2"/>
+                                <TextBox x:Name="TxtFilterRagioneSociale" Width="250" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" Text=""/>
                                 <Button x:Name="BtnFilterCalls2" Background="DeepSkyBlue" Foreground="Black" Content="Filtra" Width="100"
         Style="{StaticResource LightModernButton}" Click="BtnFilterByRagioneSociale_Click"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                 <TextBlock Text="Filtra per località:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox x:Name="TxtFilterLocazione" Width="250" Margin="4,0,10,0" Style="{StaticResource LightModernTextBox}" Text="Negozio2"/>
+                                <TextBox x:Name="TxtFilterLocazione" Width="250" Margin="4,0,10,0" Style="{StaticResource LightModernTextBox}" Text=""/>
                                 <Button x:Name="BtnFilterCalls3" Background="DeepSkyBlue" Foreground="Black" Content="Filtra" Width="100"
         Style="{StaticResource LightModernButton}" Click="BtnFilterByLocazione_Click"/>
 
@@ -289,9 +289,11 @@
                                 <Button x:Name="BtnRefreshCalls" Background="Gainsboro" Content="Aggiorna" Width="100" Margin="40,0,0,0" Style="{StaticResource LightModernButton}" Click="BtnRefreshCalls_Click"/>
                                 <Button x:Name="BtnExportCalls" Background="Green" Foreground="White" Content="Esporta" Width="100" Margin="10,0,0,0" Style="{StaticResource LightModernButton}" Click="BtnExportCalls_Click"/>
                                 <DatePicker x:Name="DatePickerFrom" Width="120" Margin="10,0,0,0" Style="{StaticResource LightModernDatePicker}" 
-SelectedDateFormat="Short" ToolTip="Data inizio"/>
+            SelectedDateFormat="Short" ToolTip="Data inizio"/>
                                 <DatePicker x:Name="DatePickerTo" Width="120" Margin="5,0,0,0" Style="{StaticResource LightModernDatePicker}" 
-SelectedDateFormat="Short" ToolTip="Data fine"/>
+            SelectedDateFormat="Short" ToolTip="Data fine" IsDropDownOpen="False"/>
+
+
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
@@ -299,6 +301,7 @@ SelectedDateFormat="Short" ToolTip="Data fine"/>
                     <!-- Griglia chiamate -->
                     <DataGrid x:Name="DgCalls" Grid.Row="1" Style="{StaticResource LightModernDataGrid}"
                           SelectionChanged="DgCalls_SelectionChanged"
+                          MouseDoubleClick="DgCalls_MouseDoubleClick"
                           ScrollViewer.CanContentScroll="True"
                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
                           ScrollViewer.VerticalScrollBarVisibility="Auto">
@@ -326,7 +329,7 @@ SelectedDateFormat="Short" ToolTip="Data fine"/>
             </TabItem>
 
             <!-- Contatti Tab -->
-            <TabItem Header="CONTATTI" Style="{StaticResource LightModernTabItem}">
+            <TabItem x:Name="ContattiTabItem" Header="CONTATTI" Style="{StaticResource LightModernTabItem}">
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

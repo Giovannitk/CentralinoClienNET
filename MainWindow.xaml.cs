@@ -14,6 +14,10 @@ using System.Text;
 using ClosedXML.Excel;
 using System.Globalization;
 using System.Windows.Data;
+using System.Windows.Input;
+using System.Diagnostics;
+using System.Windows.Threading;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace ClientCentralino_vs2
 {
@@ -206,13 +210,21 @@ namespace ClientCentralino_vs2
             _ = InitializeChartsAsync();
 
             // Visualizzazione contatti incompleti all'avvio dell'app
-            _ = ShowIncompleteContactsAsync();
+            //_ = ShowIncompleteContactsAsync();
 
             // Visualizzazione contatti incomppleti tramite tooltip
             //_ = UpdateIncompleteContactsTooltipAsync(); // non server più
 
             DataContext = this;
 
+            this.Hide();
+
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            e.Cancel = true;
+            this.Hide();
         }
 
         private async void OnNewCallReceived(Chiamata call)
@@ -622,6 +634,60 @@ namespace ClientCentralino_vs2
             }
         }
 
+
+        private void DgCalls_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (DgCalls.SelectedItem == null) return;
+
+            var selectedCall = (Chiamata)DgCalls.SelectedItem;
+
+            // Funzione locale per controllare se un campo è vuoto, nullo o "Non Registrato"
+            bool IsFieldEmptyOrUnregistered(string value) =>
+                string.IsNullOrWhiteSpace(value) || value.Trim().Equals("Non registrato", StringComparison.OrdinalIgnoreCase);
+
+            // Controlla se il chiamante è incompleto
+            bool chiamanteIncompleto = IsFieldEmptyOrUnregistered(selectedCall.RagioneSocialeChiamante) ||
+                                       IsFieldEmptyOrUnregistered(selectedCall.Locazione);
+
+            // Controlla se il chiamato è incompleto
+            bool chiamatoIncompleto = IsFieldEmptyOrUnregistered(selectedCall.RagioneSocialeChiamato);
+
+            string numeroDaModificare = null;
+            string ragioneSociale = null;
+
+            if (chiamanteIncompleto)
+            {
+                // Modifica il chiamante
+                numeroDaModificare = selectedCall.NumeroChiamante;
+                ragioneSociale = selectedCall.RagioneSocialeChiamante;
+            }
+            else if (chiamatoIncompleto)
+            {
+                // Modifica il chiamato
+                numeroDaModificare = selectedCall.NumeroChiamato;
+                ragioneSociale = selectedCall.RagioneSocialeChiamato;
+            }
+            else
+            {
+                // Tutti i dati sono completi, opzionale: non fare nulla o avvisare
+                MessageBox.Show("Entrambi i contatti sono completi.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Passa al tab CONTATTI
+            this.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TabControl.SelectedIndex = 1;
+
+                // Popola i campi nella scheda CONTATTI
+                TxtContactNumber.Text = numeroDaModificare;
+                TxtContactCompany.Text = ragioneSociale;
+
+                // Opzionale: campo ricerca
+                TxtSearchContact.Text = numeroDaModificare;
+                TxtSearchContact.Focus();
+            }), DispatcherPriority.Background);
+        }
 
         // PANNELLO CONTATTI -------------------------------------------------------------------------------------
 

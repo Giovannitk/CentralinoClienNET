@@ -142,7 +142,7 @@
                 <Button x:Name="BtnUpdateLocation" Content="Aggiorna Località" Width="140" 
                         Click="BtnUpdateLocation_Click" Margin="0,0,10,0"
                         Style="{StaticResource LightModernButtonStyle}"/>
-                <Button x:Name="BtnOpenApp" Content="Apri Applicazione" Width="140" 
+                <Button x:Name="BtnOpenApp" Content="Aggiorna in Rubrica" Width="140" 
                         Click="BtnOpenApp_Click" Margin="0,0,10,0"
                         Style="{StaticResource LightModernButtonStyle}"/>
                 <Button x:Name="BtnCloseBottom" Content="Chiudi" Width="100" 

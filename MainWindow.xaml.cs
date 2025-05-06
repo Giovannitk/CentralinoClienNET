@@ -1950,6 +1950,41 @@ namespace ClientCentralino_vs2
         }
 
 
+        public async Task CaricaContattoDaNumeroAsync(string numero)
+        {
+            try
+            {
+                var contatto = await _apiService.FindContactAsync(numero);
+                if (contatto != null)
+                {
+                    // Popolo i controlli della finestra con i dati del contatto
+                    // Passo al tab CONTATTI
+                    await this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TabControl.SelectedIndex = 1;
+
+                        // Popolo i campi nella scheda CONTATTI con valori di default se null
+                        TxtContactNumber.Text = numero;//contatto.NumeroContatto ?? string.Empty;
+                        TxtContactCompany.Text = contatto.RagioneSociale ?? string.Empty;
+                        TxtContactCity.Text = contatto.Citta ?? string.Empty;
+                        TxtContactInternal.Text = contatto.Interno?.ToString() ?? string.Empty;
+
+                        TxtSearchContact.Focus();
+                    }), DispatcherPriority.Background);
+                }
+                else
+                {
+                    // Contatto non trovato
+                    MessageBox.Show("Contatto non trovato in rubrica");
+                }
+            }
+            catch (Exception ex) 
+            {
+                MessageBox.Show($"Errore nel caricamento del contatto da notifica.\n {ex.Message}");
+            }
+        }
+
+
 
         // IMPOSTAZIONI -----------------------------------------------------------------
         private async void BtnTestConnection_Click(object sender, RoutedEventArgs e)

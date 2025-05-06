@@ -206,38 +206,108 @@ namespace ClientCentralino_vs2
             }
         }
 
-        private void MostraFinestraPrincipale() 
+        //private void MostraFinestraPrincipale() 
+        //{
+        //    if (Application.Current.MainWindow == null)
+        //    {
+        //        // La finestra è stata chiusa: la ricreo
+        //        var mainWindow = new MainWindow();
+        //        Application.Current.MainWindow = mainWindow;
+        //        mainWindow.Show();
+        //        Close();
+        //    }
+        //    else
+        //    {
+        //        // Esiste già: la mostro e la porto in primo piano
+        //        var mainWindow = Application.Current.MainWindow;
+
+        //        if (mainWindow.WindowState == WindowState.Minimized)
+        //        {
+        //            mainWindow.WindowState = WindowState.Normal;
+        //            Close();
+        //        }
+
+        //        mainWindow.Show();
+        //        mainWindow.Activate();
+        //        mainWindow.Topmost = true;  // Hack: lo porta in primo piano
+        //        mainWindow.Topmost = false; // Reset per evitare comportamenti strani
+        //        mainWindow.Focus();
+        //    }
+        //}
+
+        //private void BtnOpenApp_Click(object sender, RoutedEventArgs e)
+        //{
+        //    MostraFinestraPrincipale();
+        //}
+
+        private void MostraFinestraPrincipale(string numeroChiamante = null)
         {
             if (Application.Current.MainWindow == null)
             {
                 // La finestra è stata chiusa: la ricreo
                 var mainWindow = new MainWindow();
                 Application.Current.MainWindow = mainWindow;
-                mainWindow.Show();
-                Close();
+
+                // Passa il numero chiamante alla nuova finestra
+                if (!string.IsNullOrEmpty(numeroChiamante))
+                {
+                    (mainWindow as MainWindow)?.CaricaContattoDaNumeroAsync(numeroChiamante);
+
+                    mainWindow.Show();
+                    Close();
+                }
             }
             else
             {
                 // Esiste già: la mostro e la porto in primo piano
-                var mainWindow = Application.Current.MainWindow;
+                var mainWindow = Application.Current.MainWindow as MainWindow;
 
-                if (mainWindow.WindowState == WindowState.Minimized)
+                if (mainWindow != null)
                 {
-                    mainWindow.WindowState = WindowState.Normal;
-                    Close();
-                }
+                    // Passa il numero chiamante alla finestra esistente
+                    if (!string.IsNullOrEmpty(numeroChiamante))
+                    {
+                        mainWindow.CaricaContattoDaNumeroAsync(numeroChiamante);
+                    }
 
-                mainWindow.Show();
-                mainWindow.Activate();
-                mainWindow.Topmost = true;  // Hack: lo porta in primo piano
-                mainWindow.Topmost = false; // Reset per evitare comportamenti strani
-                mainWindow.Focus();
+                    if (mainWindow.WindowState == WindowState.Minimized)
+                    {
+                        mainWindow.WindowState = WindowState.Normal;
+                        Close();
+                    }
+
+                    mainWindow.Show();
+                    mainWindow.Activate();
+                    mainWindow.Topmost = true;  // Hack: lo porta in primo piano
+                    mainWindow.Topmost = false; // Reset per evitare comportamenti strani
+                    mainWindow.Focus();
+                }
             }
         }
 
         private void BtnOpenApp_Click(object sender, RoutedEventArgs e)
         {
-            MostraFinestraPrincipale();
+            // Recupera e pulisce il numero chiamante
+            string numeroChiamante = CleanPhoneNumber(TxtCallerNumber.Text);
+
+            if (!string.IsNullOrEmpty(numeroChiamante))
+            {
+                MostraFinestraPrincipale(numeroChiamante);
+            }
+            else
+            {
+                MessageBox.Show("Numero chiamante non valido");
+            }
+        }
+
+        // Metodo helper per pulire il numero di telefono
+        private string CleanPhoneNumber(string phoneNumber)
+        {
+            if (string.IsNullOrEmpty(phoneNumber))
+                return string.Empty;
+
+            // Rimuove tutti i caratteri non numerici
+            return new string(phoneNumber.Where(c => char.IsDigit(c)).ToArray());
         }
 
         private void BtnClose_Click(object sender, RoutedEventArgs e)

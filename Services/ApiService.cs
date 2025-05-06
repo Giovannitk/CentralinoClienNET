@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using ClientCentralino_vs2.Models;
 using Newtonsoft.Json;
 
@@ -15,7 +16,7 @@ namespace ClientCentralino_vs2.Services
         public ApiService()
         {
             _client = new HttpClient();
-            _client.BaseAddress = new Uri("http://10.36.150.250:5000/");
+            _client.BaseAddress = new Uri("http://10.36.150.250:5000/");//nuovo indirizzo(10.37.150.206) //vecchio indirizzo(http://10.36.150.250:5000/");
         }
 
         public async Task<bool> TestConnection()
@@ -28,6 +29,8 @@ namespace ClientCentralino_vs2.Services
                 var response = await _client.GetAsync("api/test-connection", cts.Token);
                 response.EnsureSuccessStatusCode();
 
+                MessageBox.Show("Risposta con successo dal server!");
+
                 // Opzionale: si può verificare il contenuto della risposta
                 var content = await response.Content.ReadAsStringAsync();
                 return !string.IsNullOrEmpty(content);
@@ -35,16 +38,19 @@ namespace ClientCentralino_vs2.Services
             catch (HttpRequestException ex)
             {
                 Console.WriteLine($"Errore di connessione: {ex.Message}");
+                MessageBox.Show($"Errore di connessione: {ex.Message}");
                 return false;
             }
             catch (TaskCanceledException)
             {
                 Console.WriteLine("Timeout: il server non ha risposto in tempo");
+                MessageBox.Show("Timeout: il server non ha risposto in tempo");
                 return false;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Errore durante il test di connessione: {ex.Message}");
+                MessageBox.Show($"Errore durante il test di connessione: {ex.Message}");
                 return false;
             }
         }

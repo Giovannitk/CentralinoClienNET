@@ -34,5 +34,29 @@ namespace ClientCentralino_vs2 {
                 this["MinCallDuration"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool HideInternalCalls {
+            get {
+                return ((bool)(this["HideInternalCalls"]));
+            }
+            set {
+                this["HideInternalCalls"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CbOnlyExternalCalls {
+            get {
+                return ((bool)(this["CbOnlyExternalCalls"]));
+            }
+            set {
+                this["CbOnlyExternalCalls"] = value;
+            }
+        }
     }
 }

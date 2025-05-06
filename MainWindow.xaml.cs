@@ -18,6 +18,7 @@ using System.Windows.Input;
 using System.Diagnostics;
 using System.Windows.Threading;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
 
 namespace ClientCentralino_vs2
 {
@@ -26,6 +27,13 @@ namespace ClientCentralino_vs2
         private readonly ApiService _apiService;
         private readonly CallNotificationService _notificationService;
         private Chiamata _selectedCall;
+
+        private List<Contatto> _cachedContacts = null;
+        private bool _isShowingContacts = false;
+
+        private List<Chiamata> _cachedCalls;
+        private Dictionary<string, Contatto> _contattiCache = new Dictionary<string, Contatto>();
+
 
         // Proprietà per i dati dei grafici --------------------------------------
         private SeriesCollection _seriesCollection;
@@ -231,6 +239,17 @@ namespace ClientCentralino_vs2
         {
             try
             {
+                bool interno = await IsInternoAsync(call.NumeroChiamante);
+
+                //
+                //MessageBox.Show($"flag:{CbOnlyExternalCalls.IsChecked} isInterno:{interno} numChiamante:{call.NumeroChiamante}");
+
+                // Se il checkbox è selezionato e il numero chiamante è interno, esci
+                if (CbOnlyExternalCalls.IsChecked == true && interno)
+                {
+                    return;
+                }
+
                 // Riproduci un suono di notifica
                 SystemSounds.Exclamation.Play();
 
@@ -249,6 +268,23 @@ namespace ClientCentralino_vs2
                 MessageBox.Show($"Errore nella gestione della notifica: {ex.Message}", "Errore",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // Controllo chamante da notificare
+        private async Task<bool> IsInternoAsync(string numero)
+        {
+            Contatto chiamante = null;
+
+            if (!string.IsNullOrWhiteSpace(numero))
+            {
+                if (!_contattiCache.TryGetValue(numero, out chiamante))
+                {
+                    chiamante = await _apiService.FindContactAsync(numero);
+                    _contattiCache[numero] = chiamante;
+                }
+            }
+            // Considera interni i numeri di 3 o 4 cifre
+            return !string.IsNullOrWhiteSpace(numero) && numero.Length <= 4 && numero.All(char.IsDigit);
         }
 
         private async void OpenAndSelectCall(int callId)
@@ -295,6 +331,70 @@ namespace ClientCentralino_vs2
             }
         }
 
+        private async Task<List<Chiamata>> GetFilteredCallsAsync()
+        {
+            try
+            {
+                // Se non è già popolato, scarica tutte le chiamate una volta sola
+                if (_cachedCalls == null)
+                    _cachedCalls = await _apiService.GetAllCallsAsync();
+
+                var filtered = new List<Chiamata>();
+
+                double minDuration = Settings1.Default.MinCallDuration > 0
+                                        ? Settings1.Default.MinCallDuration
+                                        : 5;
+
+                foreach (var call in _cachedCalls)
+                {
+                    // Escludi chiamate troppo brevi
+                    if ((call.DataFineChiamata - call.DataArrivoChiamata).TotalSeconds < minDuration)
+                        continue;
+
+                    if (Settings1.Default.HideInternalCalls)
+                    {
+                        Contatto chiamante = null;
+                        Contatto chiamato = null;
+
+                        // Recupera da cache o da API il chiamante
+                        if (!string.IsNullOrWhiteSpace(call.NumeroChiamante))
+                        {
+                            if (!_contattiCache.TryGetValue(call.NumeroChiamante, out chiamante))
+                            {
+                                chiamante = await _apiService.FindContactAsync(call.NumeroChiamante);
+                                _contattiCache[call.NumeroChiamante] = chiamante;
+                            }
+                        }
+
+                        // Recupera da cache o da API il chiamato
+                        if (!string.IsNullOrWhiteSpace(call.NumeroChiamato))
+                        {
+                            if (!_contattiCache.TryGetValue(call.NumeroChiamato, out chiamato))
+                            {
+                                chiamato = await _apiService.FindContactAsync(call.NumeroChiamato);
+                                _contattiCache[call.NumeroChiamato] = chiamato;
+                            }
+                        }
+
+                        // Se entrambi sono interni, escludi la chiamata
+                        if (chiamante?.Interno == 1 && chiamato?.Interno == 1)
+                            continue;
+                    }
+
+                    filtered.Add(call);
+                }
+
+                return filtered;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore nel recupero delle chiamate filtrate: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
+        }
+
+
         // Metodo per aggiornare le chiamate e ritornare il risultato
         //private async System.Threading.Tasks.Task<List<Chiamata>> RefreshCalls()
         //{
@@ -324,8 +424,13 @@ namespace ClientCentralino_vs2
 
         private void LoadSettings()
         {
-            // Imposta il valore dello slider con il valore salvato (15 se non impostato)
+            // Imposta il valore dello slider con il valore salvato
             SliderMinCallDuration.Value = Settings1.Default.MinCallDuration;
+
+            // Imposta lo stato del checkbox in base alle impostazioni salvate
+            CbHideInternalCalls.IsChecked = Settings1.Default.HideInternalCalls;
+
+            CbOnlyExternalCalls.IsChecked = Settings1.Default.CbOnlyExternalCalls;
         }
 
 
@@ -357,7 +462,7 @@ namespace ClientCentralino_vs2
         //        return null;
         //    }
         //}
-        private async System.Threading.Tasks.Task<List<Chiamata>> RefreshCalls()
+        private async Task<List<Chiamata>> RefreshCalls()
         {
             try
             {
@@ -367,19 +472,53 @@ namespace ClientCentralino_vs2
                                     ? Settings1.Default.MinCallDuration
                                     : 5;
 
-                // Usa oggi come default se nessuna data è selezionata
                 DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.Today;
                 DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
                                     ?? DateTime.Today.AddDays(1).AddSeconds(-1);
 
-                var filteredCalls = calls
-                    .Where(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds >= minDuration)
-                    .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate)
-                    .OrderByDescending(c => c.DataArrivoChiamata)
-                    .ToList();
+                var filtered = new List<Chiamata>();
+                var contattiCache = new Dictionary<string, Contatto>();
+                bool nascondiInterni = Settings1.Default.HideInternalCalls == true;
 
-                DgCalls.ItemsSource = filteredCalls;
-                return filteredCalls;
+                foreach (var call in calls)
+                {
+                    if ((call.DataFineChiamata - call.DataArrivoChiamata).TotalSeconds < minDuration)
+                        continue;
+
+                    if (call.DataArrivoChiamata < fromDate || call.DataArrivoChiamata > toDate)
+                        continue;
+
+                    if (nascondiInterni)
+                    {
+                        Contatto chiamante = null, chiamato = null;
+
+                        if (!string.IsNullOrWhiteSpace(call.NumeroChiamante))
+                        {
+                            if (!contattiCache.TryGetValue(call.NumeroChiamante, out chiamante))
+                            {
+                                chiamante = await _apiService.FindContactAsync(call.NumeroChiamante);
+                                contattiCache[call.NumeroChiamante] = chiamante;
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(call.NumeroChiamato))
+                        {
+                            if (!contattiCache.TryGetValue(call.NumeroChiamato, out chiamato))
+                            {
+                                chiamato = await _apiService.FindContactAsync(call.NumeroChiamato);
+                                contattiCache[call.NumeroChiamato] = chiamato;
+                            }
+                        }
+
+                        if (chiamante?.Interno == 1 && chiamato?.Interno == 1)
+                            continue;
+                    }
+
+                    filtered.Add(call);
+                }
+
+                DgCalls.ItemsSource = filtered.OrderByDescending(c => c.DataArrivoChiamata).ToList();
+                return filtered;
             }
             catch (Exception ex)
             {
@@ -388,6 +527,8 @@ namespace ClientCentralino_vs2
                 return null;
             }
         }
+
+
 
 
         //private async void BtnFilterCalls_Click(object sender, RoutedEventArgs e)
@@ -468,10 +609,9 @@ namespace ClientCentralino_vs2
             {
                 string ragioneSociale = TxtFilterRagioneSociale.Text.Trim().ToLower();
                 DateTime fromDate = DatePickerFrom.SelectedDate ?? DateTime.Today;
-                DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
-                                    ?? DateTime.Today.AddDays(1).AddSeconds(-1);
+                DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1) ?? DateTime.Today.AddDays(1).AddSeconds(-1);
 
-                var calls = await _apiService.GetAllCallsAsync();
+                var calls = await GetFilteredCallsAsync();
 
                 var filteredCalls = calls
                     .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate)
@@ -490,8 +630,7 @@ namespace ClientCentralino_vs2
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Errore nel filtro per ragione sociale: {ex.Message}", "Errore",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Errore nel filtro per ragione sociale: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -504,7 +643,7 @@ namespace ClientCentralino_vs2
                 DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
                                     ?? DateTime.Today.AddDays(1).AddSeconds(-1);
 
-                var calls = await _apiService.GetAllCallsAsync();
+                var calls = await GetFilteredCallsAsync();
 
                 var filteredCalls = calls
                     .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate)
@@ -541,7 +680,7 @@ namespace ClientCentralino_vs2
                 DateTime toDate = DatePickerTo.SelectedDate?.AddDays(1).AddSeconds(-1)
                                     ?? DateTime.Today.AddDays(1).AddSeconds(-1);
 
-                var calls = await _apiService.GetAllCallsAsync();
+                var calls = await GetFilteredCallsAsync();
 
                 var filteredCalls = calls
                     .Where(c => c.DataArrivoChiamata >= fromDate && c.DataArrivoChiamata <= toDate);
@@ -700,54 +839,134 @@ namespace ClientCentralino_vs2
 
                 if (string.IsNullOrEmpty(phoneNumber))
                 {
-                    MessageBox.Show("Inserisci un numero di telefono.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Se abbiamo già caricato i contatti, non rifacciamo la chiamata
+                    if (_cachedContacts != null && _cachedContacts.Any())
+                    {
+                        TxtCallHeaderContactNumber.Text = "Tutti i contatti";
+                        TxtCallHeaderInfo.Text = $"[{_cachedContacts.Count}]";
+
+                        _isShowingContacts = true;
+                        SetDataGridColumns(); // Ricrea colonne dinamiche per Contatto
+
+                        DgContactCalls.ItemsSource = _cachedContacts;
+                        DgContactCalls.Visibility = Visibility.Visible;
+                        return;
+                    }
+
+                    // Altrimenti chiama l'API e memorizza il risultato
+                    _cachedContacts = await _apiService.GetAllContactsAsync();
+
+                    TxtContactNumber.Clear();
+                    TxtContactCompany.Clear();
+                    TxtContactCity.Clear();
+                    TxtContactInternal.Clear();
+                    TxtCallHeaderContactNumber.Text = "Tutti i contatti";
+                    TxtCallHeaderInfo.Text = $"[{_cachedContacts.Count}]";
+
+                    _isShowingContacts = true;
+                    SetDataGridColumns(); // Ricrea colonne dinamiche per Contatto
+
+                    DgContactCalls.ItemsSource = _cachedContacts;
+                    DgContactCalls.Visibility = Visibility.Visible;
                     return;
                 }
 
+                // Ricerca per numero
                 var contact = await _apiService.FindContactAsync(phoneNumber);
 
                 if (contact != null)
                 {
-                    // Riempie i campi del contatto
-                    TxtContactNumber.Text = contact.NumeroContatto;
-                    TxtContactCompany.Text = contact.RagioneSociale;
-                    TxtContactCity.Text = contact.Citta;
-                    TxtContactInternal.Text = contact.Interno?.ToString();
+                    //TxtContactNumber.Text = contact.NumeroContatto;
+                    //TxtContactCompany.Text = contact.RagioneSociale;
+                    //TxtContactCity.Text = contact.Citta;
+                    //TxtContactInternal.Text = contact.Interno?.ToString();
 
-                    // Imposta il titolo del GroupBox con numero e (eventualmente) ragione sociale
-                    if (!string.IsNullOrWhiteSpace(contact.RagioneSociale))
+                    //TxtCallHeaderContactNumber.Text = !string.IsNullOrWhiteSpace(contact.RagioneSociale)
+                    //    ? $"[{contact.NumeroContatto}] ({contact.RagioneSociale})"
+                    //    : $"[{contact.NumeroContatto}]";
+
+                    // Ripristina colonne statiche per le chiamate se necessario
+                    if (_isShowingContacts)
                     {
-                        TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
-                    }
-                    else
-                    {
-                        TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}]";
+                        DgContactCalls.Columns.Clear(); // Elimina colonne dinamiche
+                        _isShowingContacts = false;
                     }
 
-                    // Carica le chiamate del contatto
+                    SetDataGridColumnsCall();
+
                     var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
                     DgContactCalls.ItemsSource = calls;
+                    DgContactCalls.Visibility = Visibility.Visible;
                 }
                 else
                 {
                     MessageBox.Show("Contatto non trovato. Puoi inserire i dati e salvarlo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                    // Prepara i campi per un nuovo contatto
                     TxtContactNumber.Text = phoneNumber;
                     TxtContactCompany.Clear();
                     TxtContactCity.Clear();
                     TxtContactInternal.Clear();
 
-                    // Aggiorna il titolo del GroupBox solo con il numero
                     TxtCallHeaderContactNumber.Text = $"[{phoneNumber}]";
 
-                    // Pulisce la griglia delle chiamate
+                    // Ripristina colonne statiche per le chiamate se necessario
+                    if (_isShowingContacts)
+                    {
+                        DgContactCalls.Columns.Clear(); // Elimina colonne dinamiche
+                        _isShowingContacts = false;
+                    }
+
                     DgContactCalls.ItemsSource = null;
+                    DgContactCalls.Visibility = Visibility.Visible;
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Errore nella ricerca del contatto: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
+        private void TxtSearchContact_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !Regex.IsMatch(e.Text, @"[\d+]"); // accetta solo numeri o il +
+        }
+
+
+        private void SetDataGridColumns()
+        {
+            DgContactCalls.Columns.Clear();
+
+            var properties = typeof(Contatto).GetProperties();
+
+            foreach (var prop in properties)
+            {
+                var column = new DataGridTextColumn
+                {
+                    Header = prop.Name,
+                    Binding = new Binding(prop.Name),
+                    Width = 350
+                };
+                DgContactCalls.Columns.Add(column);
+            }
+        }
+
+        private void SetDataGridColumnsCall()
+        {
+            DgContactCalls.Columns.Clear();
+
+            var properties = typeof(Chiamata).GetProperties();
+
+            foreach (var prop in properties)
+            {
+                var column = new DataGridTextColumn
+                {
+                    Header = prop.Name,
+                    Binding = new Binding(prop.Name),
+                    Width = 350
+                };
+                DgContactCalls.Columns.Add(column);
             }
         }
 
@@ -757,6 +976,7 @@ namespace ClientCentralino_vs2
             {
                 string ragioneSociale = TxtSearchByCompany.Text.Trim();
                 var allContacts = await _apiService.GetAllContactsAsync();
+                //allContacts = allContacts.Take(100).ToList();
 
                 // Se non è stata inserita nessuna ragione sociale, mostra tutti i contatti
                 var matchedContacts = string.IsNullOrEmpty(ragioneSociale)
@@ -766,42 +986,76 @@ namespace ClientCentralino_vs2
                                     c.RagioneSociale.Equals(ragioneSociale, StringComparison.OrdinalIgnoreCase))
                         .ToList();
 
-                if (matchedContacts.Count == 1)
-                {
-                    var contact = matchedContacts.First();
-
-                    TxtContactNumber.Text = contact.NumeroContatto;
-                    TxtContactCompany.Text = contact.RagioneSociale;
-                    TxtContactCity.Text = contact.Citta;
-                    TxtContactInternal.Text = contact.Interno?.ToString();
-
-                    TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
-
-                    var calls = await _apiService.GetCallsByNumberAsync(contact.NumeroContatto);
-                    DgContactCalls.ItemsSource = calls;
-                }
-                else if (matchedContacts.Count > 1)
+                // Se non è stata inserita nessuna ragione sociale, mostra tutti i contatti
+                if (string.IsNullOrEmpty(ragioneSociale))
                 {
                     TxtContactNumber.Clear();
-                    TxtContactCompany.Text = ragioneSociale;
+                    TxtContactCompany.Clear();
                     TxtContactCity.Clear();
                     TxtContactInternal.Clear();
-                    TxtCallHeaderContactNumber.Text = string.IsNullOrEmpty(ragioneSociale)
-                        ? $"Tutti i contatti ({matchedContacts.Count})"
-                        : $"[{ragioneSociale}] - {matchedContacts.Count} contatti trovati";
+                    TxtCallHeaderContactNumber.Text = "Tutti i contatti";
+                    TxtCallHeaderInfo.Text = $"[{allContacts.Count}]";
 
+                    // Configura dinamicamente le colonne della DataGrid
+                    SetDataGridColumns();
+
+                    // Mostra la lista dei contatti
                     DgContactCalls.ItemsSource = matchedContacts;
-                }
-                else
-                {
-                    MessageBox.Show("Nessun contatto trovato. Puoi inserire i dati e salvarlo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                    TxtContactNumber.Clear();
-                    TxtContactCompany.Text = ragioneSociale;
-                    TxtContactCity.Clear();
-                    TxtContactInternal.Clear();
-                    TxtCallHeaderContactNumber.Text = $"[{ragioneSociale}]";
-                    DgContactCalls.ItemsSource = null;
+                    // Mostra la tabella (era nascosta!)
+                    DgContactCalls.Visibility = Visibility.Visible;
+                }
+                else // Altrimenti
+                {
+                    TxtCallHeaderContactNumber.Text = "";
+                    TxtCallHeaderInfo.Text = "";
+                    if (matchedContacts.Count == 1)
+                    {
+                        var contact = matchedContacts.First();
+
+                        TxtContactNumber.Text = contact.NumeroContatto;
+                        TxtContactCompany.Text = contact.RagioneSociale;
+                        TxtContactCity.Text = contact.Citta;
+                        TxtContactInternal.Text = contact.Interno?.ToString();
+
+                        TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
+
+                        // Recupera le chiamate per il contatto selezionato
+                        var calls = await _apiService.GetCallsByNumberAsync(contact.NumeroContatto);
+
+                        // Mostra la tabella delle chiamate
+                        DgContactCalls.Visibility = Visibility.Visible;
+                        DgContactCalls.ItemsSource = calls;
+                    }
+                    else if (matchedContacts.Count > 1)
+                    {
+                        TxtContactNumber.Clear();
+                        TxtContactCompany.Text = ragioneSociale;
+                        TxtContactCity.Clear();
+                        TxtContactInternal.Clear();
+                        TxtCallHeaderContactNumber.Text = $"[{ragioneSociale}] - {matchedContacts.Count} contatti trovati";
+
+                        // Configura dinamicamente le colonne della DataGrid
+                        SetDataGridColumns();
+
+                        // Mostra la lista dei contatti
+                        DgContactCalls.ItemsSource = matchedContacts;
+
+                        // Mostra la tabella
+                        DgContactCalls.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Nessun contatto trovato. Puoi inserire i dati e salvarlo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        TxtContactNumber.Clear();
+                        TxtContactCompany.Text = ragioneSociale;
+                        TxtContactCity.Clear();
+                        TxtContactInternal.Clear();
+                       // TxtCallHeaderContactNumber.Text = $"[{ragioneSociale}]";
+                        DgContactCalls.Visibility = Visibility.Collapsed;
+                        DgContactCalls.ItemsSource = null;
+                    }
                 }
             }
             catch (Exception ex)
@@ -811,11 +1065,19 @@ namespace ClientCentralino_vs2
         }
 
 
+        private void TxtContactInternal_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Consente solo 0 o 1
+            e.Handled = !(e.Text == "0" || e.Text == "1");
+        }
 
 
         private async void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
         {
             Settings1.Default.MinCallDuration = (int)SliderMinCallDuration.Value;
+            Settings1.Default.HideInternalCalls = CbHideInternalCalls.IsChecked == true;
+            Settings1.Default.CbOnlyExternalCalls = CbOnlyExternalCalls.IsChecked == true;
+
             Settings1.Default.Save();
             await RefreshCalls(); // Ricarica i dati dopo il salvataggio
             MessageBox.Show("Impostazioni salvate e chiamate aggiornate!", "Salvataggio", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1686,6 +1948,38 @@ namespace ClientCentralino_vs2
         {
             MessageBox.Show("Cliccato il bottone per importare i contatti");
         }
+
+
+
+        // IMPOSTAZIONI -----------------------------------------------------------------
+        private async void BtnTestConnection_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var response = await _apiService.TestConnection();
+                MessageBox.Show("Connessione al server riuscita!", "Successo",
+                               MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore di connessione: {ex.Message}", "Errore",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnSaveNetworkSettings_Click(object sender, RoutedEventArgs e)
+        {
+            //Properties.Settings.Default.ServerIP = TxtServerIP.Text;
+            //Properties.Settings.Default.ServerPort = TxtServerPort.Text;
+            //Properties.Settings.Default.Save();
+
+            //// Ricreo il client HTTP con le nuove impostazioni
+            //_apiService.ReinitializeClient($"http://{TxtServerIP.Text}:{TxtServerPort.Text}/");
+
+            MessageBox.Show("Configurazione salvata con successo!", "Successo",
+                           MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
 
     }
 

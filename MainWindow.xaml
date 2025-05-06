@@ -350,7 +350,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Text="Numero:" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox x:Name="TxtSearchContact" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}"/>
+                                <TextBox x:Name="TxtSearchContact" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" PreviewTextInput="TxtSearchContact_PreviewTextInput"/>
                                 <Button x:Name="BtnSearchContact"
                     Background="Green"
                     Foreground="White"
@@ -464,7 +464,19 @@ Foreground="White"
                             <TextBox x:Name="TxtContactCity" Grid.Row="1" Grid.Column="1" Margin="0,5,10,5" Style="{StaticResource LightModernTextBox}"/>
 
                             <TextBlock Text="Interno:" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="0,5,10,5"/>
-                            <TextBox x:Name="TxtContactInternal" Grid.Row="1" Grid.Column="3" Margin="0,5,10,5" Style="{StaticResource LightModernTextBox}"/>
+                            <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="3" Margin="0,5,10,5">
+                                <TextBox x:Name="TxtContactInternal"
+         Width="200"
+         Style="{StaticResource LightModernTextBox}"
+         PreviewTextInput="TxtContactInternal_PreviewTextInput"
+         MaxLength="1">
+                                    <TextBox.ToolTip>
+                                        <TextBlock>
+            Inserisci 1 per interno, 0 per esterno.
+                                        </TextBlock>
+                                    </TextBox.ToolTip>
+                                </TextBox>
+                            </StackPanel>
 
                             <StackPanel Grid.Row="2" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,10,0" Cursor="">
                                 <Button x:Name="BtnSaveContact" Content="Salva Contatto" Width="125" Height="25" 
@@ -490,7 +502,8 @@ Foreground="White"
                        VerticalAlignment="Center"
                        Margin="0,0,20,0"/>
                                 <!-- Titolo a destra -->
-                                <TextBlock Text="Chiamate del Contatto"
+                                <TextBlock x:Name="TxtCallHeaderInfo" 
+                                    Text="Chiamate del Contatto"
                        FontWeight="Bold"
                        VerticalAlignment="Center"/>
                             </DockPanel>
@@ -639,6 +652,7 @@ Foreground="White"
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -664,49 +678,52 @@ Foreground="White"
                             <CheckBox x:Name="CbEnableDesktopNotifications" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                           Content="Abilita notifiche desktop" Margin="0,0,0,10"/>
 
-                            <!-- Filtri per chiamate in entrata -->
-                            <TextBlock Text="Filtri chiamate in entrata:" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" 
-                           FontWeight="Bold" Margin="0,10,0,5"/>
+                            <CheckBox x:Name="CbOnlyExternalCalls" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+          Content="Mostra solo chiamate da numeri esterni (non interni)" Margin="0,5,0,5"/>
 
-                            <!-- Filtro per numero chiamante -->
+                            <!-- Filtri per chiamate in entrata 
+                            <TextBlock Text="Filtri chiamate in entrata:" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" 
+                           FontWeight="Bold" Margin="0,10,0,5"/> -->
+
+                            <!-- Filtro per numero chiamante 
                             <TextBlock Text="Mostra notifiche per chiamanti:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
                             <ComboBox x:Name="CbCallerFilterType" Grid.Row="2" Grid.Column="1" Margin="0,0,0,5" SelectedIndex="0">
                                 <ComboBoxItem Content="Tutti i chiamanti"/>
                                 <ComboBoxItem Content="Solo numeri specifici"/>
                                 <ComboBoxItem Content="Solo ragioni sociali specifiche"/>
                                 <ComboBoxItem Content="Solo chiamanti in rubrica"/>
-                            </ComboBox>
+                            </ComboBox> -->
 
-                            <!-- Lista numeri/ragioni sociali da notificare -->
+                            <!-- Lista numeri/ragioni sociali da notificare 
                             <TextBlock Text="Numeri/Ragioni sociali:" Grid.Row="3" Grid.Column="0" VerticalAlignment="Top" Margin="0,5,10,5"/>
                             <TextBox x:Name="TxtNumbersToNotify" Grid.Row="3" Grid.Column="1" Margin="0,0,0,5" 
                          Style="{StaticResource LightModernTextBox}" Height="60" TextWrapping="Wrap" AcceptsReturn="True"
                          ToolTip="Inserisci numeri o ragioni sociali (uno per riga)"/>
                             <Button x:Name="BtnImportContacts" Grid.Row="3" Grid.Column="2" Content="Importa" Width="80" Margin="10,0,0,5" 
-                        Style="{StaticResource LightModernButton}" Click="BtnImportContacts_Click"/>
+                        Style="{StaticResource LightModernButton}" Click="BtnImportContacts_Click"/> -->
 
-                            <!-- Durata notifica -->
+                            <!-- Durata notifica 
                             <TextBlock Text="Durata notifica (sec):" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
                             <Slider x:Name="SliderNotificationDuration" Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="600" Value="1" 
                         Margin="0,0,0,5" TickFrequency="1" IsSnapToTickEnabled="True"/>
                             <TextBlock Text="{Binding Value, ElementName=SliderNotificationDuration, StringFormat={}{0} secondi}" 
-                           Grid.Row="4" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,5"/>
+                           Grid.Row="4" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,5"/> -->
 
-                            <!-- Posizione notifica -->
+                            <!-- Posizione notifica 
                             <TextBlock Text="Posizione notifica:" Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,5"/>
                             <ComboBox x:Name="CbNotificationPosition" Grid.Row="5" Grid.Column="1" Margin="0,0,0,5" SelectedIndex="0">
                                 <ComboBoxItem Content="In alto a destra"/>
                                 <ComboBoxItem Content="In basso a destra"/>
                                 <ComboBoxItem Content="In alto a sinistra"/>
                                 <ComboBoxItem Content="In basso a sinistra"/>
-                            </ComboBox>
+                            </ComboBox>-->
 
-                            <!-- Anteprima notifica -->
+                            <!-- Anteprima notifica 
                             <Button x:Name="BtnPreviewNotification" Grid.Row="6" Grid.Column="1" Content="Anteprima Notifica" Width="150" 
                         HorizontalAlignment="Left" Margin="0,10,0,0" Style="{StaticResource LightModernButton}" 
-                        Click="BtnPreviewNotification_Click"/>
-                        </Grid>
-                    </GroupBox>
+                        Click="BtnPreviewNotification_Click"/> -->
+                        </Grid> 
+                    </GroupBox> 
 
                     <!-- Sezione Configurazione Generale -->
                     <GroupBox Header="Configurazione Generale" Grid.Row="1" Style="{StaticResource LightModernGroupBox}" Margin="0,10,0,0">
@@ -731,11 +748,68 @@ Foreground="White"
                             <TextBlock Text="{Binding Value, ElementName=SliderMinCallDuration, StringFormat={}{0} secondi}" 
                    Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,5"/>
 
+                            <CheckBox x:Name="CbHideInternalCalls" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+          Content="Nascondi chiamate tra interni" Margin="0,10,0,0"
+          ToolTip="Se attivo, non verranno mostrate le chiamate tra numeri interni"/>
+
                             <!-- Salva impostazioni -->
                             <Button x:Name="BtnSaveSettings" Grid.Row="1" Grid.Column="1" 
                 Content="Salva Impostazioni" Width="120" HorizontalAlignment="Left" 
                 Margin="0,15,0,0" Style="{StaticResource LightModernButton}" 
                 Click="BtnSaveSettings_Click"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Sezione Configurazione Server API -->
+                    <GroupBox Header="Configurazione Server API" Grid.Row="2" Style="{StaticResource LightModernGroupBox}" Margin="0,10,0,0">
+                        <Grid Margin="5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Indirizzo IP Server -->
+                            <TextBlock Text="Indirizzo IP Server:" Grid.Row="0" Grid.Column="0" 
+                   VerticalAlignment="Center" Margin="0,0,10,5"/>
+                            <TextBox x:Name="TxtServerIP" Grid.Row="0" Grid.Column="1" 
+                 Text="10.36.150.250"
+                 Style="{StaticResource LightModernTextBox}" Margin="0,0,0,5"
+                 ToolTip="Inserisci l'indirizzo IP del server API"/>
+
+                            <!-- Test connessione -->
+                            <Button x:Name="BtnTestConnection" Grid.Row="0" Grid.Column="2" 
+                Content="Test Connessione" Width="120" Margin="10,0,0,5"
+                Style="{StaticResource LightModernButton}"
+                Click="BtnTestConnection_Click"/>
+
+                            <!-- Porta Server -->
+                            <TextBlock Text="Porta Server:" Grid.Row="1" Grid.Column="0" 
+                   VerticalAlignment="Center" Margin="0,0,10,5"/>
+                            <TextBox x:Name="TxtServerPort" Grid.Row="1" Grid.Column="1" 
+                 Text="5000"
+                 Style="{StaticResource LightModernTextBox}" Margin="0,0,0,5"
+                 ToolTip="Inserisci la porta del server API"/>
+
+                            <!-- URL completo (readonly) -->
+                            <TextBlock Text="Endpoint API:" Grid.Row="2" Grid.Column="0" 
+                   VerticalAlignment="Center" Margin="0,0,10,5"/>
+                            <TextBox x:Name="TxtApiEndpoint" Grid.Row="2" Grid.Column="1" 
+                 IsReadOnly="True" Background="#EEE"
+                 Style="{StaticResource LightModernTextBox}" Margin="0,0,0,5"
+                 Text="http://10.36.150.250:5000/"
+                 ToolTip="Endpoint completo per le chiamate API"/>
+
+                            <!-- Salva configurazione -->
+                            <Button x:Name="BtnSaveNetworkSettings" Grid.Row="2" Grid.Column="2" 
+                Content="Salva Configurazione" Width="120" Margin="10,0,0,5"
+                Style="{StaticResource LightModernButton}"
+                Click="BtnSaveNetworkSettings_Click"/>
                         </Grid>
                     </GroupBox>
                 </Grid>

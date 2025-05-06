@@ -18,6 +18,37 @@ namespace ClientCentralino_vs2.Services
             _client.BaseAddress = new Uri("http://10.36.150.250:5000/");
         }
 
+        public async Task<bool> TestConnection()
+        {
+            try
+            {
+                // Timeout più breve per il test di connessione (es. 5 secondi)
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+                var response = await _client.GetAsync("api/test-connection", cts.Token);
+                response.EnsureSuccessStatusCode();
+
+                // Opzionale: si può verificare il contenuto della risposta
+                var content = await response.Content.ReadAsStringAsync();
+                return !string.IsNullOrEmpty(content);
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Errore di connessione: {ex.Message}");
+                return false;
+            }
+            catch (TaskCanceledException)
+            {
+                Console.WriteLine("Timeout: il server non ha risposto in tempo");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Errore durante il test di connessione: {ex.Message}");
+                return false;
+            }
+        }
+
         public async Task<List<Chiamata>> GetAllCallsAsync()
         {
             try

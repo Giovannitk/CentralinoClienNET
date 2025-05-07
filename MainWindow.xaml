@@ -350,7 +350,30 @@
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Text="Numero:" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                
+                                
                                 <TextBox x:Name="TxtSearchContact" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}" PreviewTextInput="TxtSearchContact_PreviewTextInput"/>
+                                <Grid Grid.Column="1" Margin="0,0,10,0">
+                                    <TextBox x:Name="TxtSearchByNumber"
+  TextChanged="TxtSearchByNumber_TextChanged"
+  Style="{StaticResource LightModernTextBox}" />
+
+                                    <Popup x:Name="NumberSuggestionsPopup"
+Placement="Bottom"
+PlacementTarget="{Binding ElementName=TxtSearchByNumber}"
+StaysOpen="False"
+IsOpen="False">
+                                        <Border Background="White" BorderBrush="Gray" BorderThickness="1" CornerRadius="4">
+                                            <ListBox x:Name="NumberSuggestionsListBox"
+          MouseDoubleClick="NumberSuggestionsListBox_MouseDoubleClick"
+          MaxHeight="150"
+          Width="{Binding ActualWidth, ElementName=TxtSearchByNumber}" />
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+
+
+
                                 <Button x:Name="BtnSearchContact"
                     Background="Green"
                     Foreground="White"
@@ -372,7 +395,29 @@
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Text="Ragione Sociale:" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox x:Name="TxtSearchByCompany" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}"/>
+
+                                <!-- <TextBox x:Name="TxtSearchByCompany" Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource LightModernTextBox}"/> -->
+                                <Grid Grid.Column="1" Margin="0,0,10,0">
+                                    <TextBox x:Name="TxtSearchByCompany"
+             TextChanged="TxtSearchByCompany_TextChanged"
+             Style="{StaticResource LightModernTextBox}" />
+
+                                    <Popup x:Name="CompanySuggestionsPopup"
+           Placement="Bottom"
+           PlacementTarget="{Binding ElementName=TxtSearchByCompany}"
+           StaysOpen="False"
+           IsOpen="False">
+                                        <Border Background="White" BorderBrush="Gray" BorderThickness="1" CornerRadius="4">
+                                            <ListBox x:Name="CompanySuggestionsListBox"
+                     MouseDoubleClick="CompanySuggestionsListBox_MouseDoubleClick"
+                     MaxHeight="150"
+                     Width="{Binding ActualWidth, ElementName=TxtSearchByCompany}" />
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+
+
+
                                 <Button x:Name="BtnSearchByCompany"
                     Background="Green"
 Foreground="White"
@@ -767,6 +812,7 @@ Foreground="White"
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -810,6 +856,8 @@ Foreground="White"
                 Content="Salva Configurazione" Width="120" Margin="10,0,0,5"
                 Style="{StaticResource LightModernButton}"
                 Click="BtnSaveNetworkSettings_Click"/>
+
+                            <ProgressBar x:Name="ProgressBarConnessione" Grid.Row="3" Height="20" IsIndeterminate="True" Visibility="Collapsed"/>
                         </Grid>
                     </GroupBox>
                 </Grid>

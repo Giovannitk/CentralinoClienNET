@@ -25,6 +25,8 @@ namespace ClientCentralino_vs2.Services
             _client = new HttpClient
             {
                 BaseAddress = new Uri(_baseAddress),
+
+                // Tempo di attesa della risposta del server
                 Timeout = TimeSpan.FromSeconds(5)
             };
         }
@@ -41,34 +43,67 @@ namespace ClientCentralino_vs2.Services
             {
                 var fullUrl = $"{_client.BaseAddress}api/call/test-connection";
                 Console.WriteLine($"Testing connection to: {fullUrl}");
+                MessageBox.Show($"Testing connection to: {fullUrl}");
 
                 var response = await _client.GetAsync("api/call/test-connection");
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show($"Il server ha risposto con errore: {(int)response.StatusCode} - {response.ReasonPhrase}");
+                    MessageBox.Show($"Errore: {(int)response.StatusCode} - {response.ReasonPhrase}", "Errore server", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
 
-                MessageBox.Show("Connessione riuscita!");
+                //MessageBox.Show("Test Connessione riuscito!", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
                 return true;
             }
             catch (HttpRequestException ex)
             {
-                MessageBox.Show($"Errore HTTP: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Errore HTTP: {ex.Message}", "Errore di rete", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             catch (TaskCanceledException)
             {
-                MessageBox.Show("Timeout nella connessione al server.", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Timeout nella connessione al server.", "Timeout", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Errore generico: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Errore generico: {ex.Message}", "Errore sconosciuto", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }
+
+
+        public async Task<bool> TestCustomConnection(string ip, string port)
+        {
+            // Evito che l'utente inserisca una porta non valida, differente da un numero tra 1 e 65535
+            if (!int.TryParse(port, out int portNumber) || portNumber < 1 || portNumber > 65535)
+            {
+                MessageBox.Show("Porta non valida. Inserire un numero tra 1 e 65535.", "Errore", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            try
+            {
+                using (var tempClient = new HttpClient
+                {
+                    BaseAddress = new Uri($"http://{ip}:{port}/"),
+
+                    // Tempo di attesa della risposta del server
+                    Timeout = TimeSpan.FromSeconds(5)
+                })
+                {
+                    var response = await tempClient.GetAsync("api/call/test-connection");
+                    return response.IsSuccessStatusCode;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore durante il test di connessione: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+        }
+
 
         //public void UpdateEndpoint(string ip, string port)
         //{

@@ -21,6 +21,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
 using System.Windows.Controls.Primitives;
 using System.Reflection;
+using System.Collections.ObjectModel;
 
 namespace ClientCentralino_vs2
 {
@@ -212,9 +213,7 @@ namespace ClientCentralino_vs2
             _apiService = new ApiService();
             _notificationService = new CallNotificationService(_apiService);
 
-            // Avvia il servizio di notifica
             _notificationService.Start(OnNewCallReceived);
-
 
             _columnHeaderStyle = new Style(typeof(DataGridColumnHeader))
             {
@@ -234,26 +233,32 @@ namespace ClientCentralino_vs2
         }
             };
 
-
-            _ = RefreshCalls();
-
-            LoadSettings();
-
-
-            // Inizializzazione Charts
-            _ = InitializeChartsAsync();
-
-            // Visualizzazione contatti incompleti all'avvio dell'app
-            //_ = ShowIncompleteContactsAsync();
-
-            // Visualizzazione contatti incomppleti tramite tooltip
-            //_ = UpdateIncompleteContactsTooltipAsync(); // non server più
-
             DataContext = this;
 
-            this.Hide();
+            _ = RefreshCalls();
+            LoadSettings();
+            _ = InitializeChartsAsync();
 
+            // Caricamento iniziale dei contatti
+            _ = InitializeCachedContactsAsync();
+
+            this.Hide();
         }
+
+
+        private async Task InitializeCachedContactsAsync()
+        {
+            try
+            {
+                _cachedContacts = await _apiService.GetAllContactsAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Errore nel caricamento dei contatti: " + ex.Message);
+            }
+        }
+
+
 
         protected override void OnClosing(CancelEventArgs e)
         {
@@ -962,6 +967,47 @@ namespace ClientCentralino_vs2
             e.Handled = !Regex.IsMatch(e.Text, @"[\d+]"); // accetta solo numeri o il +
         }
 
+        private void TxtSearchByNumber_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string typedText = TxtSearchByNumber.Text.ToLower();
+
+            if (string.IsNullOrWhiteSpace(typedText) || _cachedContacts == null)
+            {
+                NumberSuggestionsPopup.IsOpen = false;
+                return;
+            }
+
+            var matches = _cachedContacts
+                .Where(c => !string.IsNullOrWhiteSpace(c.NumeroContatto) &&
+                            c.NumeroContatto.ToLower().Contains(typedText))
+                .Select(c => c.NumeroContatto)
+                .Distinct()
+                .Take(10)
+                .ToList();
+
+            if (matches.Any())
+            {
+                NumberSuggestionsListBox.ItemsSource = matches;
+                NumberSuggestionsPopup.IsOpen = true;
+            }
+            else
+            {
+                NumberSuggestionsPopup.IsOpen = false;
+            }
+        }
+
+        private void NumberSuggestionsListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (NumberSuggestionsListBox.SelectedItem is string selectedNumber)
+            {
+                TxtSearchByNumber.Text = selectedNumber;
+                NumberSuggestionsPopup.IsOpen = false;
+
+                // Puoi eventualmente lanciare subito la ricerca:
+                BtnSearchContact_Click(null, null);
+            }
+        }
+
 
         private void SetDataGridColumns()
         {
@@ -1022,25 +1068,6 @@ namespace ClientCentralino_vs2
             }
         }
 
-        /*
-         * Questa sotto sarebbe la funzione compatta della funzione sopra:
-         * private void SetDataGridColumnsCall()
-{
-    DgContactCalls.Columns.Clear();
-
-    foreach (var prop in typeof(Chiamata).GetProperties().Where(p => p.Name != "Id"))
-    {
-        DgContactCalls.Columns.Add(new DataGridTextColumn
-        {
-            Header = prop.Name,
-            Binding = (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?)) 
-                ? new Binding(prop.Name) { StringFormat = "dd/MM/yyyy HH:mm" }
-                : new Binding(prop.Name),
-            Width = 280
-        });
-    }
-}
-         */
 
 
 
@@ -1149,6 +1176,48 @@ namespace ClientCentralino_vs2
                 MessageBox.Show($"Errore nella ricerca per ragione sociale: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private void TxtSearchByCompany_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string typedText = TxtSearchByCompany.Text.ToLower();
+
+            if (string.IsNullOrWhiteSpace(typedText) || _cachedContacts == null)
+            {
+                CompanySuggestionsPopup.IsOpen = false;
+                return;
+            }
+
+            var matches = _cachedContacts
+                .Where(c => !string.IsNullOrWhiteSpace(c.RagioneSociale) &&
+                            c.RagioneSociale.ToLower().Contains(typedText))
+                .Select(c => c.RagioneSociale)
+                .Distinct()
+                .Take(10)
+                .ToList();
+
+            if (matches.Any())
+            {
+                CompanySuggestionsListBox.ItemsSource = matches;
+                CompanySuggestionsPopup.IsOpen = true;
+            }
+            else
+            {
+                CompanySuggestionsPopup.IsOpen = false;
+            }
+        }
+
+        private void CompanySuggestionsListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (CompanySuggestionsListBox.SelectedItem is string selectedCompany)
+            {
+                TxtSearchByCompany.Text = selectedCompany;
+                CompanySuggestionsPopup.IsOpen = false;
+
+                // Puoi eventualmente lanciare subito la ricerca:
+                BtnSearchByCompany_Click(null, null);
+            }
+        }
+
 
 
         private void TxtContactInternal_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -2020,34 +2089,40 @@ namespace ClientCentralino_vs2
         // IMPOSTAZIONI -----------------------------------------------------------------
         private async void BtnTestConnection_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                _apiService.UpdateEndpoint(TxtServerIP.Text, TxtServerPort.Text);
-                await _apiService.TestConnection();
-                MessageBox.Show("Connessione al server riuscita!", "Successo",
-                               MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Errore di connessione: {ex.Message}", "Errore",
-                               MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            ProgressBarConnessione.Visibility = Visibility.Visible;
+            BtnTestConnection.IsEnabled = false;
+
+            var success = await _apiService.TestCustomConnection(TxtServerIP.Text, TxtServerPort.Text);
+
+            BtnTestConnection.IsEnabled = true;
+            ProgressBarConnessione.Visibility = Visibility.Collapsed;
+
+            MessageBox.Show(success ? "Connessione riuscita!" : "Connessione fallita.", "Esito",
+                MessageBoxButton.OK,
+                success ? MessageBoxImage.Information : MessageBoxImage.Error);
         }
+
+
 
         private async void BtnSaveNetworkSettings_Click(object sender, RoutedEventArgs e)
         {
-            TxtApiEndpoint.Text = $"http://{TxtServerIP.Text}:{TxtServerPort.Text}/";
-            _apiService.UpdateEndpoint(TxtServerIP.Text, TxtServerPort.Text);
+            string ip = TxtServerIP.Text;
+            string port = TxtServerPort.Text;
 
-            var testOk = await _apiService.TestConnection();
+            var testOk = await _apiService.TestCustomConnection(ip, port);
             if (!testOk)
             {
                 MessageBox.Show("Impossibile salvare. Il server non è raggiungibile.", "Errore", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
+            // Se il test è andato bene, aggiorno l'endpoint
+            _apiService.UpdateEndpoint(ip, port);
+            TxtApiEndpoint.Text = $"http://{ip}:{port}/";
+
             MessageBox.Show("Configurazione salvata con successo!", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
+
     }
 
 

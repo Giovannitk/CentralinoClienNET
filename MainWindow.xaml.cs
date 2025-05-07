@@ -19,6 +19,8 @@ using System.Diagnostics;
 using System.Windows.Threading;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
+using System.Windows.Controls.Primitives;
+using System.Reflection;
 
 namespace ClientCentralino_vs2
 {
@@ -28,7 +30,7 @@ namespace ClientCentralino_vs2
         private readonly CallNotificationService _notificationService;
         private Chiamata _selectedCall;
 
-        private List<Contatto> _cachedContacts = null;
+        private List<Contatto>? _cachedContacts = null;
         private bool _isShowingContacts = false;
 
         private List<Chiamata> _cachedCalls;
@@ -200,6 +202,10 @@ namespace ClientCentralino_vs2
         }
 
 
+        private Style _columnHeaderStyle;
+        private Style _dataGridCellStyle;
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -208,6 +214,26 @@ namespace ClientCentralino_vs2
 
             // Avvia il servizio di notifica
             _notificationService.Start(OnNewCallReceived);
+
+
+            _columnHeaderStyle = new Style(typeof(DataGridColumnHeader))
+            {
+                Setters = {
+            new Setter(System.Windows.Controls.Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Left),
+            new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 0, 0, 0)),
+            new Setter(FontFamilyProperty, DgContactCalls.FontFamily),
+            new Setter(FontSizeProperty, DgContactCalls.FontSize)
+        }
+            };
+
+            _dataGridCellStyle = new Style(typeof(DataGridCell))
+            {
+                Setters = {
+            new Setter(System.Windows.Controls.Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Left),
+            new Setter(System.Windows.Controls.Control.PaddingProperty, new Thickness(10, 0, 0, 0))
+        }
+            };
+
 
             _ = RefreshCalls();
 
@@ -871,6 +897,9 @@ namespace ClientCentralino_vs2
                     return;
                 }
 
+                TxtCallHeaderContactNumber.Text = "";
+                TxtCallHeaderInfo.Text = "";
+
                 // Ricerca per numero
                 var contact = await _apiService.FindContactAsync(phoneNumber);
 
@@ -937,26 +966,43 @@ namespace ClientCentralino_vs2
         private void SetDataGridColumns()
         {
             DgContactCalls.Columns.Clear();
+            DgContactCalls.ColumnHeaderStyle = _columnHeaderStyle;
+            DgContactCalls.CellStyle = _dataGridCellStyle;
 
-            var properties = typeof(Contatto).GetProperties();
+            var properties = typeof(Contatto).GetProperties().ToList();
 
             foreach (var prop in properties)
             {
-                var column = new DataGridTextColumn
+                DgContactCalls.Columns.Add(new DataGridTextColumn
                 {
                     Header = prop.Name,
                     Binding = new Binding(prop.Name),
-                    Width = 350
-                };
-                DgContactCalls.Columns.Add(column);
+                    Width = prop.Name.Contains("NumeroContatto") || prop.Name.Contains("Interno") ? 150 : 320
+                });
             }
+        }
+
+        // Metodo helper per determinare la larghezza
+        private double GetColumnWidth(PropertyInfo prop)
+        {
+            if (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?))
+                return 150;
+            if (prop.Name.Contains("RagioneSociale"))
+                return 280;
+            if (prop.Name.Contains("Locazione"))
+                return 250;
+            return 140;
         }
 
         private void SetDataGridColumnsCall()
         {
             DgContactCalls.Columns.Clear();
+            DgContactCalls.ColumnHeaderStyle = _columnHeaderStyle;
+            DgContactCalls.CellStyle = _dataGridCellStyle;
 
-            var properties = typeof(Chiamata).GetProperties();
+            var properties = typeof(Chiamata).GetProperties()
+                .Where(p => p.Name != "Id")
+                .ToList(); // Materializza la query
 
             foreach (var prop in properties)
             {
@@ -964,27 +1010,69 @@ namespace ClientCentralino_vs2
                 {
                     Header = prop.Name,
                     Binding = new Binding(prop.Name),
-                    Width = 350
+                    Width = GetColumnWidth(prop)
                 };
+
+                if (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?))
+                {
+                    ((Binding)column.Binding).StringFormat = "dd/MM/yyyy HH:mm";
+                }
+
                 DgContactCalls.Columns.Add(column);
             }
         }
+
+        /*
+         * Questa sotto sarebbe la funzione compatta della funzione sopra:
+         * private void SetDataGridColumnsCall()
+{
+    DgContactCalls.Columns.Clear();
+
+    foreach (var prop in typeof(Chiamata).GetProperties().Where(p => p.Name != "Id"))
+    {
+        DgContactCalls.Columns.Add(new DataGridTextColumn
+        {
+            Header = prop.Name,
+            Binding = (prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTime?)) 
+                ? new Binding(prop.Name) { StringFormat = "dd/MM/yyyy HH:mm" }
+                : new Binding(prop.Name),
+            Width = 280
+        });
+    }
+}
+         */
+
+
 
         private async void BtnSearchByCompany_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 string ragioneSociale = TxtSearchByCompany.Text.Trim();
-                var allContacts = await _apiService.GetAllContactsAsync();
-                //allContacts = allContacts.Take(100).ToList();
+                List<Contatto> matchedContacts;
 
-                // Se non è stata inserita nessuna ragione sociale, mostra tutti i contatti
-                var matchedContacts = string.IsNullOrEmpty(ragioneSociale)
-                    ? allContacts
-                    : allContacts
-                        .Where(c => !string.IsNullOrEmpty(c.RagioneSociale) &&
-                                    c.RagioneSociale.Equals(ragioneSociale, StringComparison.OrdinalIgnoreCase))
-                        .ToList();
+                // Se abbiamo già caricato i contatti, usiamo la cache
+                if (_cachedContacts != null && _cachedContacts.Any())
+                {
+                    matchedContacts = string.IsNullOrEmpty(ragioneSociale)
+                        ? _cachedContacts
+                        : _cachedContacts
+                            .Where(c => !string.IsNullOrEmpty(c.RagioneSociale) &&
+                                      c.RagioneSociale.Equals(ragioneSociale, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                }
+                else
+                {
+                    // Altrimenti chiama l'API e memorizza il risultato
+                    _cachedContacts = await _apiService.GetAllContactsAsync();
+
+                    matchedContacts = string.IsNullOrEmpty(ragioneSociale)
+                        ? _cachedContacts
+                        : _cachedContacts
+                            .Where(c => !string.IsNullOrEmpty(c.RagioneSociale) &&
+                                      c.RagioneSociale.Equals(ragioneSociale, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                }
 
                 // Se non è stata inserita nessuna ragione sociale, mostra tutti i contatti
                 if (string.IsNullOrEmpty(ragioneSociale))
@@ -994,21 +1082,18 @@ namespace ClientCentralino_vs2
                     TxtContactCity.Clear();
                     TxtContactInternal.Clear();
                     TxtCallHeaderContactNumber.Text = "Tutti i contatti";
-                    TxtCallHeaderInfo.Text = $"[{allContacts.Count}]";
+                    TxtCallHeaderInfo.Text = $"[{_cachedContacts.Count}]";
 
-                    // Configura dinamicamente le colonne della DataGrid
+                    _isShowingContacts = true;
                     SetDataGridColumns();
-
-                    // Mostra la lista dei contatti
-                    DgContactCalls.ItemsSource = matchedContacts;
-
-                    // Mostra la tabella (era nascosta!)
+                    DgContactCalls.ItemsSource = _cachedContacts;
                     DgContactCalls.Visibility = Visibility.Visible;
                 }
                 else // Altrimenti
                 {
                     TxtCallHeaderContactNumber.Text = "";
                     TxtCallHeaderInfo.Text = "";
+
                     if (matchedContacts.Count == 1)
                     {
                         var contact = matchedContacts.First();
@@ -1020,12 +1105,18 @@ namespace ClientCentralino_vs2
 
                         TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
 
-                        // Recupera le chiamate per il contatto selezionato
-                        var calls = await _apiService.GetCallsByNumberAsync(contact.NumeroContatto);
+                        // Ripristina colonne statiche per le chiamate se necessario
+                        if (_isShowingContacts)
+                        {
+                            DgContactCalls.Columns.Clear();
+                            _isShowingContacts = false;
+                        }
 
-                        // Mostra la tabella delle chiamate
-                        DgContactCalls.Visibility = Visibility.Visible;
+                        SetDataGridColumnsCall();
+
+                        var calls = await _apiService.GetCallsByNumberAsync(contact.NumeroContatto);
                         DgContactCalls.ItemsSource = calls;
+                        DgContactCalls.Visibility = Visibility.Visible;
                     }
                     else if (matchedContacts.Count > 1)
                     {
@@ -1035,13 +1126,9 @@ namespace ClientCentralino_vs2
                         TxtContactInternal.Clear();
                         TxtCallHeaderContactNumber.Text = $"[{ragioneSociale}] - {matchedContacts.Count} contatti trovati";
 
-                        // Configura dinamicamente le colonne della DataGrid
+                        _isShowingContacts = true;
                         SetDataGridColumns();
-
-                        // Mostra la lista dei contatti
                         DgContactCalls.ItemsSource = matchedContacts;
-
-                        // Mostra la tabella
                         DgContactCalls.Visibility = Visibility.Visible;
                     }
                     else
@@ -1052,7 +1139,6 @@ namespace ClientCentralino_vs2
                         TxtContactCompany.Text = ragioneSociale;
                         TxtContactCity.Clear();
                         TxtContactInternal.Clear();
-                       // TxtCallHeaderContactNumber.Text = $"[{ragioneSociale}]";
                         DgContactCalls.Visibility = Visibility.Collapsed;
                         DgContactCalls.ItemsSource = null;
                     }
@@ -1858,98 +1944,8 @@ namespace ClientCentralino_vs2
             }
         }
 
-
-        // Funzione sostituita da quella che gestisce il bottone
-        // Funzione per gestire la visualizzazione dei contatti incompleti 
-        // tramite tooltip nella finestra Contatti.
-        //private async Task UpdateIncompleteContactsTooltipAsync()
-        //{
-        //    var contatti = await _apiService.GetIncompleteContactsAsync();
-
-        //    if (TooltipContentTextBlock != null)
-        //    {
-        //        await Application.Current.Dispatcher.InvokeAsync(() =>
-        //        {
-        //            if (contatti.Any())
-        //            {
-        //                var sb = new StringBuilder();
-        //                sb.AppendLine("CONTATTI INCOMPLETI:");
-        //                sb.AppendLine();
-        //                sb.AppendLine("Numero".PadRight(15) + "Interno".PadRight(10) + "Rag. Sociale".PadRight(30) + "Città");
-        //                sb.AppendLine(new string('-', 70));
-
-        //                foreach (var c in contatti)
-        //                {
-        //                    sb.AppendLine(
-        //                        (c.NumeroContatto ?? "NULL").PadRight(15) +
-        //                        (c.Interno.ToString() ?? "NULL").PadRight(10) +
-        //                        (c.RagioneSociale ?? "NULL").PadRight(30) +
-        //                        (c.Citta ?? "NULL")
-        //                    );
-        //                }
-
-        //                TooltipContentTextBlock.Text = sb.ToString();
-        //            }
-        //            else
-        //            {
-        //                TooltipContentTextBlock.Text = "Tutti i contatti sono completi.";
-        //            }
-
-        //            // Forza il refresh del layout
-        //            TooltipContentTextBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        //            TooltipContentTextBlock.Arrange(new Rect(TooltipContentTextBlock.DesiredSize));
-        //        }, System.Windows.Threading.DispatcherPriority.Render);
-        //    }
-        //}
-
-
-        private bool ShouldNotify(Chiamata call, NotificationSettings nS)
-        {
-            if (!nS.Enabled)
-                return false;
-
-            switch (nS.FilterType)
-            {
-                case 0: // Tutti
-                    return true;
-                case 1: // Numeri specifici
-                    return true; //nS.Contains(call.NumeroChiamante);
-                case 2: // Ragioni sociali
-                    return true;//nS.Any(name =>
-                           //call.RagioneSocialeChiamante.Contains(name, StringComparison.OrdinalIgnoreCase));
-                case 3: // In rubrica
-                    return true; //_contactService.IsInContacts(call.CallerNumber);
-                default:
-                    return false;
-            }
-        }
-
-
-        private void BtnPreviewNotification_Click(object sender, RoutedEventArgs e)
-        {
-            var previewCall = new Chiamata
-            {
-                NumeroChiamante = "0123456789",
-                DataArrivoChiamata = DateTime.Now,
-                RagioneSocialeChiamante = "CHIAMATA DI PROVA"
-            };
-
-            //var window = new NotificationWindow(previewCall)
-            //{
-            //    Duration = TimeSpan.FromSeconds(SliderNotificationDuration.Value),
-            //    Position = (NotificationPosition)CbNotificationPosition.SelectedIndex
-            //};
-            //window.Show();
-
-            MessageBox.Show("Cliccato il bottone per configurare le notifiche");        
-        }
-
-        private void BtnImportContacts_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Cliccato il bottone per importare i contatti");
-        }
-
-
+        // Funzione per caricare il contatto quando si preme sul pulsante Aggiorna Rubrica nella
+        // finestra notifica.
         public async Task CaricaContattoDaNumeroAsync(string numero)
         {
             try
@@ -1957,6 +1953,8 @@ namespace ClientCentralino_vs2
                 var contatto = await _apiService.FindContactAsync(numero);
                 if (contatto != null)
                 {
+                    //if (!string.IsNullOrEmpty(contatto.RagioneSociale) && !string.IsNullOrEmpty(contatto.Citta) && contatto.Interno != null)
+                    //{
                     // Popolo i controlli della finestra con i dati del contatto
                     // Passo al tab CONTATTI
                     await this.Dispatcher.BeginInvoke(new Action(() =>
@@ -1971,11 +1969,44 @@ namespace ClientCentralino_vs2
 
                         TxtSearchContact.Focus();
                     }), DispatcherPriority.Background);
+                    //}
+                    //else 
+                    //{
+                    //    MessageBox.Show("Contatto già presente in rubrica.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+                    //}
+
+                    // Ripristina colonne statiche per le chiamate se necessario
+                    if (_isShowingContacts)
+                    {
+                        DgContactCalls.Columns.Clear(); // Elimina colonne dinamiche
+                        _isShowingContacts = false;
+                    }
+
+                    SetDataGridColumnsCall();
+
+                    var calls = await _apiService.GetCallsByNumberAsync(numero);
+                    DgContactCalls.ItemsSource = calls;
+                    DgContactCalls.Visibility = Visibility.Visible;
                 }
                 else
                 {
                     // Contatto non trovato
-                    MessageBox.Show("Contatto non trovato in rubrica");
+                    MessageBox.Show("Contatto non trovato. Puoi inserire i dati e salvarlo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Popolo i controlli della finestra con i dati del contatto
+                    // Passo al tab CONTATTI
+                    await this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TabControl.SelectedIndex = 1;
+
+                        // Popolo i campi nella scheda CONTATTI con valori di default se null
+                        TxtContactNumber.Text = numero;//contatto.NumeroContatto ?? string.Empty;
+                        //TxtContactCompany.Text = contatto.RagioneSociale ?? string.Empty;
+                        //TxtContactCity.Text = contatto.Citta ?? string.Empty;
+                        //TxtContactInternal.Text = contatto.Interno?.ToString() ?? string.Empty;
+
+                        TxtSearchContact.Focus();
+                    }), DispatcherPriority.Background);
                 }
             }
             catch (Exception ex) 
@@ -1991,7 +2022,8 @@ namespace ClientCentralino_vs2
         {
             try
             {
-                var response = await _apiService.TestConnection();
+                _apiService.UpdateEndpoint(TxtServerIP.Text, TxtServerPort.Text);
+                await _apiService.TestConnection();
                 MessageBox.Show("Connessione al server riuscita!", "Successo",
                                MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -2002,22 +2034,22 @@ namespace ClientCentralino_vs2
             }
         }
 
-        private void BtnSaveNetworkSettings_Click(object sender, RoutedEventArgs e)
+        private async void BtnSaveNetworkSettings_Click(object sender, RoutedEventArgs e)
         {
-            //Properties.Settings.Default.ServerIP = TxtServerIP.Text;
-            //Properties.Settings.Default.ServerPort = TxtServerPort.Text;
-            //Properties.Settings.Default.Save();
+            TxtApiEndpoint.Text = $"http://{TxtServerIP.Text}:{TxtServerPort.Text}/";
+            _apiService.UpdateEndpoint(TxtServerIP.Text, TxtServerPort.Text);
 
-            //// Ricreo il client HTTP con le nuove impostazioni
-            //_apiService.ReinitializeClient($"http://{TxtServerIP.Text}:{TxtServerPort.Text}/");
+            var testOk = await _apiService.TestConnection();
+            if (!testOk)
+            {
+                MessageBox.Show("Impossibile salvare. Il server non è raggiungibile.", "Errore", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
-            MessageBox.Show("Configurazione salvata con successo!", "Successo",
-                           MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Configurazione salvata con successo!", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-
-
     }
 
 
-    
+
 }

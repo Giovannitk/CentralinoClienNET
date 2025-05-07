@@ -11,49 +11,77 @@ namespace ClientCentralino_vs2.Services
 {
     public class ApiService
     {
-        private readonly HttpClient _client;
+        private HttpClient _client;
+        private string _baseAddress;
 
         public ApiService()
         {
-            _client = new HttpClient();
-            _client.BaseAddress = new Uri("http://10.36.150.250:5000/");//nuovo indirizzo(10.37.150.206) //vecchio indirizzo(http://10.36.150.250:5000/");
+            _baseAddress = "http://10.36.150.250:5000/"; // Valore di default
+            CreateHttpClient();
+        }
+
+        private void CreateHttpClient()
+        {
+            _client = new HttpClient
+            {
+                BaseAddress = new Uri(_baseAddress),
+                Timeout = TimeSpan.FromSeconds(5)
+            };
+        }
+
+        public void UpdateEndpoint(string ip, string port)
+        {
+            _baseAddress = $"http://{ip}:{port}/";
+            CreateHttpClient(); // Ricrea l'HttpClient con il nuovo indirizzo
         }
 
         public async Task<bool> TestConnection()
         {
             try
             {
-                // Timeout più breve per il test di connessione (es. 5 secondi)
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var fullUrl = $"{_client.BaseAddress}api/call/test-connection";
+                Console.WriteLine($"Testing connection to: {fullUrl}");
 
-                var response = await _client.GetAsync("api/test-connection", cts.Token);
-                response.EnsureSuccessStatusCode();
+                var response = await _client.GetAsync("api/call/test-connection");
 
-                MessageBox.Show("Risposta con successo dal server!");
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show($"Il server ha risposto con errore: {(int)response.StatusCode} - {response.ReasonPhrase}");
+                    return false;
+                }
 
-                // Opzionale: si può verificare il contenuto della risposta
-                var content = await response.Content.ReadAsStringAsync();
-                return !string.IsNullOrEmpty(content);
+                MessageBox.Show("Connessione riuscita!");
+                return true;
             }
             catch (HttpRequestException ex)
             {
-                Console.WriteLine($"Errore di connessione: {ex.Message}");
-                MessageBox.Show($"Errore di connessione: {ex.Message}");
+                MessageBox.Show($"Errore HTTP: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             catch (TaskCanceledException)
             {
-                Console.WriteLine("Timeout: il server non ha risposto in tempo");
-                MessageBox.Show("Timeout: il server non ha risposto in tempo");
+                MessageBox.Show("Timeout nella connessione al server.", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Errore durante il test di connessione: {ex.Message}");
-                MessageBox.Show($"Errore durante il test di connessione: {ex.Message}");
+                MessageBox.Show($"Errore generico: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }
+
+        //public void UpdateEndpoint(string ip, string port)
+        //{
+        //    if (int.TryParse(port, out int portNumber))
+        //    {
+        //        _client.BaseAddress = new Uri($"http://{ip}:{portNumber}/");
+        //    }
+        //    else
+        //    {
+        //        throw new ArgumentException("Porta non valida");
+        //    }
+        //}
+
 
         public async Task<List<Chiamata>> GetAllCallsAsync()
         {

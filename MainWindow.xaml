@@ -237,6 +237,8 @@
             <Setter Property="Padding" Value="10"/>
             <Setter Property="Margin" Value="0,0,10,0"/>
         </Style>
+
+        <Style x:Key="LightModernComboBox"></Style>
     </Window.Resources>
 
     <Grid>
@@ -508,20 +510,17 @@ Foreground="White"
                             <TextBlock Text="Città:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,5,10,5"/>
                             <TextBox x:Name="TxtContactCity" Grid.Row="1" Grid.Column="1" Margin="0,5,10,5" Style="{StaticResource LightModernTextBox}"/>
 
-                            <TextBlock Text="Interno:" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="0,5,10,5"/>
+                            <TextBlock Text="Tipologia Linea:" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="0,5,10,5"/>
                             <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="3" Margin="0,5,10,5">
-                                <TextBox x:Name="TxtContactInternal"
-         Width="200"
-         Style="{StaticResource LightModernTextBox}"
-         PreviewTextInput="TxtContactInternal_PreviewTextInput"
-         MaxLength="1">
-                                    <TextBox.ToolTip>
-                                        <TextBlock>
-            Inserisci 1 per interno, 0 per esterno.
-                                        </TextBlock>
-                                    </TextBox.ToolTip>
-                                </TextBox>
+                                <ComboBox x:Name="CmbContactInternal"
+              Width="200"
+              Style="{StaticResource LightModernComboBox}">
+                                    <ComboBoxItem Content="-- Scelta Tipologia --" IsEnabled="False" IsSelected="True" />
+                                    <ComboBoxItem Content="Interno" Tag="1" />
+                                    <ComboBoxItem Content="Esterno" Tag="0" />
+                                </ComboBox>
                             </StackPanel>
+
 
                             <StackPanel Grid.Row="2" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,10,0" Cursor="">
                                 <Button x:Name="BtnSaveContact" Content="Salva Contatto" Width="125" Height="25" 

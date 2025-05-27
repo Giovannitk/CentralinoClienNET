@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using ClientCentralino_vs2.Models;
 using Newtonsoft.Json;
+using System.Net.Http.Headers;
 
 namespace ClientCentralino_vs2.Services
 {
@@ -13,11 +14,52 @@ namespace ClientCentralino_vs2.Services
     {
         private HttpClient _client;
         private string _baseAddress;
+        private string _authToken;
 
         public ApiService()
         {
             _baseAddress = "http://10.36.150.250:5000/"; // Valore di default
             CreateHttpClient();
+            // Perform automatic login on initialization
+            _ = PerformLoginAsync();
+        }
+
+        private async Task PerformLoginAsync()
+        {
+            try
+            {
+                var loginData = new
+                {
+                    email = "piccirillo@alex.com",
+                    password = "piccirillo123" // Replace with actual password
+                };
+
+                var content = new StringContent(
+                    JsonConvert.SerializeObject(loginData),
+                    Encoding.UTF8,
+                    "application/json");
+
+                var response = await _client.PostAsync("api/auth/login", content);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var loginResponse = JsonConvert.DeserializeObject<LoginResponse>(responseContent);
+
+                if (loginResponse.success)
+                {
+                    _authToken = loginResponse.token;
+                    // Update the default request headers with the token
+                    _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+                }
+                else
+                {
+                    MessageBox.Show("Errore durante il login automatico", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore durante il login automatico: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void CreateHttpClient()
@@ -35,6 +77,8 @@ namespace ClientCentralino_vs2.Services
         {
             _baseAddress = $"http://{ip}:{port}/";
             CreateHttpClient(); // Ricrea l'HttpClient con il nuovo indirizzo
+            // Perform login again with new endpoint
+            _ = PerformLoginAsync();
         }
 
         public async Task<bool> TestConnection()
@@ -324,5 +368,14 @@ namespace ClientCentralino_vs2.Services
                 return false;
             }
         }
+    }
+
+    // Add this class to deserialize the login response
+    public class LoginResponse
+    {
+        public bool success { get; set; }
+        public string token { get; set; }
+        public string message { get; set; }
+        public string role { get; set; }
     }
 }

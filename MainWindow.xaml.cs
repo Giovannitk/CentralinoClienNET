@@ -866,92 +866,128 @@ namespace ClientCentralino_vs2
         {
             try
             {
-                string phoneNumber = TxtSearchContact.Text.Trim();
+                string phoneNumber = TxtSearchByNumber.Text.Trim();
+                List<Contatto> matchedContacts;
+
+                if (_cachedContacts != null && _cachedContacts.Any())
+                {
+                    matchedContacts = string.IsNullOrEmpty(phoneNumber)
+                        ? _cachedContacts
+                        : _cachedContacts
+                            .Where(c => !string.IsNullOrEmpty(c.NumeroContatto) &&
+                                        c.NumeroContatto.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                }
+                else
+                {
+                    _cachedContacts = await _apiService.GetAllContactsAsync();
+
+                    matchedContacts = string.IsNullOrEmpty(phoneNumber)
+                        ? _cachedContacts
+                        : _cachedContacts
+                            .Where(c => !string.IsNullOrEmpty(c.NumeroContatto) &&
+                                        c.NumeroContatto.Equals(phoneNumber, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                }
 
                 if (string.IsNullOrEmpty(phoneNumber))
                 {
-                    // Se abbiamo già caricato i contatti, non rifacciamo la chiamata
-                    if (_cachedContacts != null && _cachedContacts.Any())
-                    {
-                        TxtCallHeaderContactNumber.Text = "Tutti i contatti";
-                        TxtCallHeaderInfo.Text = $"[{_cachedContacts.Count}]";
-
-                        _isShowingContacts = true;
-                        SetDataGridColumns(); // Ricrea colonne dinamiche per Contatto
-
-                        DgContactCalls.ItemsSource = _cachedContacts;
-                        DgContactCalls.Visibility = Visibility.Visible;
-                        return;
-                    }
-
-                    // Altrimenti chiama l'API e memorizza il risultato
-                    _cachedContacts = await _apiService.GetAllContactsAsync();
-
-                    TxtContactNumber.Clear();
-                    TxtContactCompany.Clear();
-                    TxtContactCity.Clear();
-                    TxtContactInternal.Clear();
                     TxtCallHeaderContactNumber.Text = "Tutti i contatti";
                     TxtCallHeaderInfo.Text = $"[{_cachedContacts.Count}]";
 
                     _isShowingContacts = true;
-                    SetDataGridColumns(); // Ricrea colonne dinamiche per Contatto
-
+                    SetDataGridColumns();
                     DgContactCalls.ItemsSource = _cachedContacts;
-                    DgContactCalls.Visibility = Visibility.Visible;
-                    return;
-                }
-
-                TxtCallHeaderContactNumber.Text = "";
-                TxtCallHeaderInfo.Text = "";
-
-                // Ricerca per numero
-                var contact = await _apiService.FindContactAsync(phoneNumber);
-
-                if (contact != null)
-                {
-                    //TxtContactNumber.Text = contact.NumeroContatto;
-                    //TxtContactCompany.Text = contact.RagioneSociale;
-                    //TxtContactCity.Text = contact.Citta;
-                    //TxtContactInternal.Text = contact.Interno?.ToString();
-
-                    //TxtCallHeaderContactNumber.Text = !string.IsNullOrWhiteSpace(contact.RagioneSociale)
-                    //    ? $"[{contact.NumeroContatto}] ({contact.RagioneSociale})"
-                    //    : $"[{contact.NumeroContatto}]";
-
-                    // Ripristina colonne statiche per le chiamate se necessario
-                    if (_isShowingContacts)
-                    {
-                        DgContactCalls.Columns.Clear(); // Elimina colonne dinamiche
-                        _isShowingContacts = false;
-                    }
-
-                    SetDataGridColumnsCall();
-
-                    var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
-                    DgContactCalls.ItemsSource = calls;
                     DgContactCalls.Visibility = Visibility.Visible;
                 }
                 else
                 {
-                    MessageBox.Show("Contatto non trovato. Puoi inserire i dati e salvarlo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+                    TxtCallHeaderContactNumber.Text = "";
+                    TxtCallHeaderInfo.Text = "";
 
-                    TxtContactNumber.Text = phoneNumber;
-                    TxtContactCompany.Clear();
-                    TxtContactCity.Clear();
-                    TxtContactInternal.Clear();
-
-                    TxtCallHeaderContactNumber.Text = $"[{phoneNumber}]";
-
-                    // Ripristina colonne statiche per le chiamate se necessario
-                    if (_isShowingContacts)
+                    if (matchedContacts.Count == 1)
                     {
-                        DgContactCalls.Columns.Clear(); // Elimina colonne dinamiche
-                        _isShowingContacts = false;
-                    }
+                        var contact = matchedContacts.First();
 
-                    DgContactCalls.ItemsSource = null;
-                    DgContactCalls.Visibility = Visibility.Visible;
+                        TxtContactNumber.Text = contact.NumeroContatto;
+                        TxtContactCompany.Text = contact.RagioneSociale;
+                        TxtContactCity.Text = contact.Citta;
+
+                        //TxtContactInternal.Text = contact.Interno?.ToString();
+                        if (contact.Interno.HasValue)
+                        {
+                            string internoValue = contact.Interno.Value.ToString();
+                            var matchingItem = CmbContactInternal.Items
+                                .OfType<ComboBoxItem>()
+                                .FirstOrDefault(item => item.Tag?.ToString() == internoValue);
+
+                            if (matchingItem != null)
+                            {
+                                CmbContactInternal.SelectedItem = matchingItem;
+                            }
+                            else
+                            {
+                                CmbContactInternal.SelectedIndex = -1;
+                            }
+                        }
+                        else
+                        {
+                            CmbContactInternal.SelectedIndex = -1;
+                        }
+
+
+                        TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
+
+                        if (_isShowingContacts)
+                        {
+                            DgContactCalls.Columns.Clear();
+                            _isShowingContacts = false;
+                        }
+
+                        SetDataGridColumnsCall();
+
+                        var calls = await _apiService.GetCallsByNumberAsync(contact.NumeroContatto);
+                        DgContactCalls.ItemsSource = calls;
+                        DgContactCalls.Visibility = Visibility.Visible;
+                    }
+                    else if (matchedContacts.Count > 1)
+                    {
+                        TxtContactNumber.Clear();
+                        TxtContactCompany.Clear();
+                        TxtContactCity.Clear();
+
+                        //TxtContactInternal.Clear();
+                        CmbContactInternal.SelectedIndex = -1;
+
+                        TxtCallHeaderContactNumber.Text = $"[{phoneNumber}] - {matchedContacts.Count} contatti trovati";
+
+                        _isShowingContacts = true;
+                        SetDataGridColumns();
+                        DgContactCalls.ItemsSource = matchedContacts;
+                        DgContactCalls.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Contatto non trovato. Puoi inserire i dati e salvarlo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        TxtContactNumber.Text = phoneNumber;
+                        TxtContactCompany.Clear();
+                        TxtContactCity.Clear();
+
+                        //TxtContactInternal.Clear();
+                        CmbContactInternal.SelectedIndex = -1;
+
+                        TxtCallHeaderContactNumber.Text = $"[{phoneNumber}]";
+
+                        if (_isShowingContacts)
+                        {
+                            DgContactCalls.Columns.Clear();
+                            _isShowingContacts = false;
+                        }
+
+                        DgContactCalls.ItemsSource = null;
+                        DgContactCalls.Visibility = Visibility.Visible;
+                    }
                 }
             }
             catch (Exception ex)
@@ -1107,7 +1143,10 @@ namespace ClientCentralino_vs2
                     TxtContactNumber.Clear();
                     TxtContactCompany.Clear();
                     TxtContactCity.Clear();
-                    TxtContactInternal.Clear();
+
+                    //TxtContactInternal.Clear();
+                    CmbContactInternal.SelectedIndex = -1;
+
                     TxtCallHeaderContactNumber.Text = "Tutti i contatti";
                     TxtCallHeaderInfo.Text = $"[{_cachedContacts.Count}]";
 
@@ -1128,7 +1167,29 @@ namespace ClientCentralino_vs2
                         TxtContactNumber.Text = contact.NumeroContatto;
                         TxtContactCompany.Text = contact.RagioneSociale;
                         TxtContactCity.Text = contact.Citta;
-                        TxtContactInternal.Text = contact.Interno?.ToString();
+
+
+                        //TxtContactInternal.Text = contact.Interno?.ToString();
+                        if (contact.Interno.HasValue)
+                        {
+                            string internoValue = contact.Interno.Value.ToString();
+                            var matchingItem = CmbContactInternal.Items
+                                .OfType<ComboBoxItem>()
+                                .FirstOrDefault(item => item.Tag?.ToString() == internoValue);
+
+                            if (matchingItem != null)
+                            {
+                                CmbContactInternal.SelectedItem = matchingItem;
+                            }
+                            else
+                            {
+                                CmbContactInternal.SelectedIndex = -1;
+                            }
+                        }
+                        else
+                        {
+                            CmbContactInternal.SelectedIndex = -1;
+                        }
 
                         TxtCallHeaderContactNumber.Text = $"[{contact.NumeroContatto}] ({contact.RagioneSociale})";
 
@@ -1150,7 +1211,10 @@ namespace ClientCentralino_vs2
                         TxtContactNumber.Clear();
                         TxtContactCompany.Text = ragioneSociale;
                         TxtContactCity.Clear();
-                        TxtContactInternal.Clear();
+
+                        //TxtContactInternal.Clear();
+                        CmbContactInternal.SelectedIndex = -1;
+
                         TxtCallHeaderContactNumber.Text = $"[{ragioneSociale}] - {matchedContacts.Count} contatti trovati";
 
                         _isShowingContacts = true;
@@ -1165,7 +1229,10 @@ namespace ClientCentralino_vs2
                         TxtContactNumber.Clear();
                         TxtContactCompany.Text = ragioneSociale;
                         TxtContactCity.Clear();
-                        TxtContactInternal.Clear();
+
+                        //TxtContactInternal.Clear();
+                        CmbContactInternal.SelectedIndex = -1;
+
                         DgContactCalls.Visibility = Visibility.Collapsed;
                         DgContactCalls.ItemsSource = null;
                     }
@@ -1173,7 +1240,7 @@ namespace ClientCentralino_vs2
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Errore nella ricerca per ragione sociale: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Errore nella ricerca per ragione sociale: {ex.Message} - {ex.StackTrace}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1252,7 +1319,6 @@ namespace ClientCentralino_vs2
                     return;
                 }
 
-
                 string ragioneSociale = TxtContactCompany.Text;
 
                 if (string.IsNullOrEmpty(ragioneSociale))
@@ -1261,9 +1327,6 @@ namespace ClientCentralino_vs2
                     return;
                 }
 
-
-                //string interno = TxtContactInternal.Text;
-
                 var contact = new Contatto
                 {
                     NumeroContatto = phoneNumber,
@@ -1271,7 +1334,7 @@ namespace ClientCentralino_vs2
                     Citta = TxtContactCity.Text.Trim()
                 };
 
-                if (!string.IsNullOrEmpty(TxtContactInternal.Text.Trim()) && int.TryParse(TxtContactInternal.Text.Trim(), out int interno))
+                if (CmbContactInternal.SelectedItem is ComboBoxItem selectedItem && int.TryParse(selectedItem.Tag?.ToString(), out int interno))
                 {
                     contact.Interno = interno;
                 }
@@ -1281,6 +1344,24 @@ namespace ClientCentralino_vs2
                 if (success)
                 {
                     MessageBox.Show("Contatto salvato con successo.", "Informazione", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Aggiorna la cache
+                    if (_cachedContacts != null)
+                    {
+                        var existing = _cachedContacts.FirstOrDefault(c => c.NumeroContatto == phoneNumber);
+                        if (existing != null)
+                        {
+                            // Aggiorna i dati del contatto esistente
+                            existing.RagioneSociale = contact.RagioneSociale;
+                            existing.Citta = contact.Citta;
+                            existing.Interno = contact.Interno;
+                        }
+                        else
+                        {
+                            // Aggiungi nuovo contatto
+                            _cachedContacts.Add(contact);
+                        }
+                    }
 
                     // Ricarica le chiamate del contatto
                     var calls = await _apiService.GetCallsByNumberAsync(phoneNumber);
@@ -1319,14 +1400,27 @@ namespace ClientCentralino_vs2
 
                     if (deleted)
                     {
+                        // Rimuove il contatto dalla cache
+                        if (_cachedContacts != null)
+                        {
+                            var contactToRemove = _cachedContacts.FirstOrDefault(c => c.NumeroContatto == phoneNumber);
+                            if (contactToRemove != null)
+                                _cachedContacts.Remove(contactToRemove);
+                        }
+
                         MessageBox.Show("Contatto eliminato con successo.", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
 
                         // Pulisci i campi
                         TxtContactNumber.Clear();
                         TxtContactCompany.Clear();
                         TxtContactCity.Clear();
-                        TxtContactInternal.Clear();
+
+                        //TxtContactInternal.Clear();ù
+                        CmbContactInternal.SelectedIndex = -1;
+
                         DgContactCalls.ItemsSource = null;
+                        TxtCallHeaderContactNumber.Text = "";
+                        TxtCallHeaderInfo.Text = "";
                     }
                     else
                     {
@@ -1364,7 +1458,24 @@ namespace ClientCentralino_vs2
                     TxtContactNumber.Text = finestra.ContattoSelezionato.NumeroContatto;
                     TxtContactCompany.Text = finestra.ContattoSelezionato.RagioneSociale;
                     TxtContactCity.Text = finestra.ContattoSelezionato.Citta;
-                    TxtContactInternal.Text = finestra.ContattoSelezionato.Interno?.ToString();
+
+                    //TxtContactInternal.Text = finestra.ContattoSelezionato.Interno?.ToString();
+                    if (finestra.ContattoSelezionato.Interno.HasValue)
+                    {
+                        var valoreInterno = finestra.ContattoSelezionato.Interno.Value;
+                        foreach (ComboBoxItem item in CmbContactInternal.Items)
+                        {
+                            if (item.Tag?.ToString() == valoreInterno.ToString())
+                            {
+                                CmbContactInternal.SelectedItem = item;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        CmbContactInternal.SelectedIndex = -1; // Nessuna selezione
+                    }
 
                     // Imposta il titolo del GroupBox con numero e (eventualmente) ragione sociale
                     var numero = finestra.ContattoSelezionato.NumeroContatto;
@@ -2034,7 +2145,24 @@ namespace ClientCentralino_vs2
                         TxtContactNumber.Text = numero;//contatto.NumeroContatto ?? string.Empty;
                         TxtContactCompany.Text = contatto.RagioneSociale ?? string.Empty;
                         TxtContactCity.Text = contatto.Citta ?? string.Empty;
-                        TxtContactInternal.Text = contatto.Interno?.ToString() ?? string.Empty;
+
+                        //TxtContactInternal.Text = contatto.Interno?.ToString() ?? string.Empty;
+                        if (contatto.Interno.HasValue)
+                        {
+                            foreach (ComboBoxItem item in CmbContactInternal.Items)
+                            {
+                                if (item.Tag.ToString() == contatto.Interno.Value.ToString())
+                                {
+                                    CmbContactInternal.SelectedItem = item;
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            CmbContactInternal.SelectedIndex = -1;
+                        }
+
 
                         TxtSearchContact.Focus();
                     }), DispatcherPriority.Background);

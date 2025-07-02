@@ -37,6 +37,7 @@ namespace ClientCentralino_vs2
         private List<Chiamata> _cachedCalls;
         private Dictionary<string, Contatto> _contattiCache = new Dictionary<string, Contatto>();
 
+        private bool _enableDetailedNotifications = true;
 
         // Proprietà per i dati dei grafici --------------------------------------
         private SeriesCollection _seriesCollection;
@@ -211,9 +212,16 @@ namespace ClientCentralino_vs2
         {
             InitializeComponent();
             _apiService = new ApiService();
+            _apiService.OnSessionExpired += HandleSessionExpired;
             _notificationService = new CallNotificationService(_apiService);
 
-            _notificationService.Start(OnNewCallReceived);
+            // Imposta il flag in base allo stato iniziale della checkbox
+            _enableDetailedNotifications = CbEnableDesktopNotifications.IsChecked == true;
+            CbEnableDesktopNotifications.Checked += (s, e) => _enableDetailedNotifications = true;
+            CbEnableDesktopNotifications.Unchecked += (s, e) => _enableDetailedNotifications = false;
+
+            // Avvia tutto subito dopo login, anche se la finestra non è mai mostrata
+            _ = StartAppLogicAsync();
 
             _columnHeaderStyle = new Style(typeof(DataGridColumnHeader))
             {
@@ -235,16 +243,39 @@ namespace ClientCentralino_vs2
 
             DataContext = this;
 
-            _ = RefreshCalls();
+            // Carica le impostazioni
             LoadSettings();
-            _ = InitializeChartsAsync();
-
-            // Caricamento iniziale dei contatti
-            _ = InitializeCachedContactsAsync();
 
             this.Hide();
         }
 
+        private async Task StartAppLogicAsync()
+        {
+            await _apiService.LoginTask;
+            _notificationService.Start(OnNewCallReceived);
+            _notificationService.StartIncomingCallPolling(OnIncomingCallReceived);
+            await InitializeDataAsync();
+        }
+
+        private async Task InitializeDataAsync()
+        {
+            try
+            {
+                // Carica i contatti
+                await InitializeCachedContactsAsync();
+
+                // Carica le chiamate
+                await RefreshCalls();
+
+                // Carica le statistiche
+                await InitializeChartsAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore durante l'inizializzazione dei dati: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         private async Task InitializeCachedContactsAsync()
         {
@@ -270,10 +301,10 @@ namespace ClientCentralino_vs2
         {
             try
             {
-                bool interno = await IsInternoAsync(call.NumeroChiamante);
+                if (!_enableDetailedNotifications)
+                    return;
 
-                //
-                //MessageBox.Show($"flag:{CbOnlyExternalCalls.IsChecked} isInterno:{interno} numChiamante:{call.NumeroChiamante}");
+                bool interno = await IsInternoAsync(call.NumeroChiamante);
 
                 // Se il checkbox è selezionato e il numero chiamante è interno, esci
                 if (CbOnlyExternalCalls.IsChecked == true && interno)
@@ -301,7 +332,6 @@ namespace ClientCentralino_vs2
             }
         }
 
-        // Controllo chamante da notificare
         private async Task<bool> IsInternoAsync(string numero)
         {
             Contatto chiamante = null;
@@ -510,6 +540,7 @@ namespace ClientCentralino_vs2
                 var filtered = new List<Chiamata>();
                 var contattiCache = new Dictionary<string, Contatto>();
                 bool nascondiInterni = Settings1.Default.HideInternalCalls == true;
+                bool soloEsterni = Settings1.Default.CbOnlyExternalCalls == true;
 
                 foreach (var call in calls)
                 {
@@ -519,30 +550,41 @@ namespace ClientCentralino_vs2
                     if (call.DataArrivoChiamata < fromDate || call.DataArrivoChiamata > toDate)
                         continue;
 
-                    if (nascondiInterni)
+                    // Recupera le informazioni sui contatti
+                    Contatto chiamante = null, chiamato = null;
+
+                    if (!string.IsNullOrWhiteSpace(call.NumeroChiamante))
                     {
-                        Contatto chiamante = null, chiamato = null;
-
-                        if (!string.IsNullOrWhiteSpace(call.NumeroChiamante))
+                        if (!contattiCache.TryGetValue(call.NumeroChiamante, out chiamante))
                         {
-                            if (!contattiCache.TryGetValue(call.NumeroChiamante, out chiamante))
-                            {
-                                chiamante = await _apiService.FindContactAsync(call.NumeroChiamante);
-                                contattiCache[call.NumeroChiamante] = chiamante;
-                            }
+                            chiamante = await _apiService.FindContactAsync(call.NumeroChiamante);
+                            contattiCache[call.NumeroChiamante] = chiamante;
                         }
+                    }
 
-                        if (!string.IsNullOrWhiteSpace(call.NumeroChiamato))
+                    if (!string.IsNullOrWhiteSpace(call.NumeroChiamato))
+                    {
+                        if (!contattiCache.TryGetValue(call.NumeroChiamato, out chiamato))
                         {
-                            if (!contattiCache.TryGetValue(call.NumeroChiamato, out chiamato))
-                            {
-                                chiamato = await _apiService.FindContactAsync(call.NumeroChiamato);
-                                contattiCache[call.NumeroChiamato] = chiamato;
-                            }
+                            chiamato = await _apiService.FindContactAsync(call.NumeroChiamato);
+                            contattiCache[call.NumeroChiamato] = chiamato;
                         }
+                    }
 
-                        if (chiamante?.Interno == 1 && chiamato?.Interno == 1)
-                            continue;
+                    bool isChiamanteInterno = chiamante?.Interno == 1;
+                    bool isChiamatoInterno = chiamato?.Interno == 1;
+
+                    // Gestione delle chiamate in base ai filtri
+                    if (nascondiInterni && isChiamanteInterno && isChiamatoInterno)
+                    {
+                        // Nascondi solo le chiamate tra interni
+                        continue;
+                    }
+
+                    if (soloEsterni && isChiamanteInterno)
+                    {
+                        // Nascondi le chiamate degli interni verso l'esterno
+                        continue;
                     }
 
                     filtered.Add(call);
@@ -1610,7 +1652,7 @@ namespace ClientCentralino_vs2
             }
 
 
-            var call = calls[0].TipoChiamata; 
+            var call = calls[0].TipoChiamata;
 
             //MessageBox.Show($"inbound: {stats.Inbound} - outbound: {stats.Outbound} - calls: {calls.Count()} - first call: {call}");
 
@@ -1656,7 +1698,7 @@ namespace ClientCentralino_vs2
                     RagioneSociale = g.Key,
                     MediaDurataSecondi = Math.Round(g.Average(c => (c.DataFineChiamata - c.DataArrivoChiamata).TotalSeconds)),
                     NumeroChiamate = g.Count()
-            
+
                 })
                 .OrderByDescending(x => x.MediaDurataSecondi)
                 .ToList();
@@ -1697,7 +1739,7 @@ namespace ClientCentralino_vs2
                 };
 
                 // === Grafico a torta 1 ===
-                PieSeries = new SeriesCollection { 
+                PieSeries = new SeriesCollection {
                     new PieSeries
                     {
                         Title = "In entrata",
@@ -1822,7 +1864,7 @@ namespace ClientCentralino_vs2
 
             });
 
-            
+
 
             // === Grafico temporale (per giorno) ===
             if (dailyStats.Any())
@@ -1889,8 +1931,8 @@ namespace ClientCentralino_vs2
             var match = Regex.Match(input, @"Comune di\s+(.*)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value.Trim() : "";
         }
-        
-        
+
+
         // ---------------------------------------------------------------------------------------------
 
         // PANNELLO CHIAMATE --------------------------------------------------------------------------
@@ -2151,7 +2193,7 @@ namespace ClientCentralino_vs2
                         {
                             foreach (ComboBoxItem item in CmbContactInternal.Items)
                             {
-                                if (item.Tag.ToString() == contatto.Interno.Value.ToString())
+                                if (item?.Tag != null && contatto != null && contatto.Interno.HasValue && item.Tag.ToString() == contatto.Interno.Value.ToString())
                                 {
                                     CmbContactInternal.SelectedItem = item;
                                     break;
@@ -2206,7 +2248,7 @@ namespace ClientCentralino_vs2
                     }), DispatcherPriority.Background);
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 MessageBox.Show($"Errore nel caricamento del contatto da notifica.\n {ex.Message}");
             }
@@ -2251,6 +2293,26 @@ namespace ClientCentralino_vs2
             MessageBox.Show("Configurazione salvata con successo!", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        private void OnIncomingCallReceived(IncomingCall call)
+        {
+            try
+            {
+                // Suono diverso per incoming call
+                SystemSounds.Asterisk.Play();
+                var incomingWindow = new IncomingCallNotificationWindow(_apiService, call);
+                incomingWindow.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Errore nella gestione della notifica incoming: {ex.Message}", "Errore",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void HandleSessionExpired()
+        {
+            _notificationService.Stop();
+        }
     }
 
 

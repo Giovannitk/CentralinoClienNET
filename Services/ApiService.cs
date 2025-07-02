@@ -7,6 +7,7 @@ using System.Windows;
 using ClientCentralino_vs2.Models;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
+using System.Diagnostics;
 
 namespace ClientCentralino_vs2.Services
 {
@@ -15,13 +16,20 @@ namespace ClientCentralino_vs2.Services
         private HttpClient _client;
         private string _baseAddress;
         private string _authToken;
+        private bool _isRefreshingToken = false;
+        private readonly object _lockObject = new object();
+
+        public event Action OnSessionExpired;
+
+        public Task LoginTask { get; private set; }
 
         public ApiService()
         {
             _baseAddress = "http://10.36.150.250:5000/"; // Valore di default
             CreateHttpClient();
             // Perform automatic login on initialization
-            _ = PerformLoginAsync();
+            //_ = PerformLoginAsync();
+            LoginTask = PerformLoginAsync();
         }
 
         private async Task PerformLoginAsync()
@@ -50,16 +58,72 @@ namespace ClientCentralino_vs2.Services
                     _authToken = loginResponse.token;
                     // Update the default request headers with the token
                     _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+                    //MessageBox.Show("Login OK, token: " + _authToken);
                 }
                 else
                 {
-                    MessageBox.Show("Errore durante il login automatico", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                    //MessageBox.Show("Errore durante il login automatico", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Errore durante il login automatico: " + loginResponse.message);
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Errore durante il login automatico: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private async Task<bool> RefreshTokenAsync()
+        {
+            lock (_lockObject)
+            {
+                if (_isRefreshingToken)
+                    return false;
+                _isRefreshingToken = true;
+            }
+
+            try
+            {
+                await PerformLoginAsync();
+                return !string.IsNullOrEmpty(_authToken);
+            }
+            finally
+            {
+                _isRefreshingToken = false;
+            }
+        }
+
+        private async Task<T> ExecuteWithTokenRefreshAsync<T>(Func<Task<T>> apiCall)
+        {
+            try
+            {
+                return await apiCall();
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("401"))
+            {
+                // Token scaduto, prova a fare il refresh
+                if (await RefreshTokenAsync())
+                {
+                    // Riprova la chiamata con il nuovo token
+                    return await apiCall();
+                }
+                else
+                {
+                    // Se il refresh fallisce, mostra il messaggio e riavvia l'app
+                    MessageBox.Show("Sessione scaduta. L'applicazione verrà riavviata.", "Token scaduto", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    RestartApplication();
+                    throw; // Rilancia l'eccezione per gestirla nel chiamante
+                }
+            }
+        }
+
+        private void RestartApplication()
+        {
+            // Serve per notificare chi ascolta che la sessione è scaduta (es: MainWindow)
+            OnSessionExpired?.Invoke();
+
+            // Riavvia l'applicazione
+            Process.Start(Process.GetCurrentProcess().MainModule.FileName);
+            Application.Current.Shutdown();
         }
 
         private void CreateHttpClient()
@@ -132,11 +196,15 @@ namespace ClientCentralino_vs2.Services
                 using (var tempClient = new HttpClient
                 {
                     BaseAddress = new Uri($"http://{ip}:{port}/"),
-
-                    // Tempo di attesa della risposta del server
                     Timeout = TimeSpan.FromSeconds(5)
                 })
                 {
+                    // Copy the authentication token from the main client if it exists
+                    if (!string.IsNullOrEmpty(_authToken))
+                    {
+                        tempClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
+                    }
+
                     var response = await tempClient.GetAsync("api/call/test-connection");
                     return response.IsSuccessStatusCode;
                 }
@@ -164,40 +232,35 @@ namespace ClientCentralino_vs2.Services
 
         public async Task<List<Chiamata>> GetAllCallsAsync()
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.GetAsync("api/Call/get-all-calls");
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
-                //Console.WriteLine(json);
                 return JsonConvert.DeserializeObject<List<Chiamata>>(json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API: {ex.Message}");
-                return new List<Chiamata>();
-            }
+            });
         }
 
         public async Task<List<Chiamata>> GetCallsByNumberAsync(string phoneNumber)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.GetAsync($"api/Call/get-calls-by-number?phoneNumber={phoneNumber}");
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 return JsonConvert.DeserializeObject<List<Chiamata>>(json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API: {ex.Message}");
-                return new List<Chiamata>();
-            }
+            });
         }
 
         public async Task<Contatto> FindContactAsync(string phoneNumber)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.GetAsync($"api/Call/find-contact?phoneNumber={phoneNumber}");
 
@@ -207,37 +270,27 @@ namespace ClientCentralino_vs2.Services
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 return JsonConvert.DeserializeObject<Contatto>(json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API: {ex.Message}");
-                return null;
-            }
+            });
         }
 
         public async Task<List<Contatto>> GetAllContactsAsync()
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.GetAsync("api/Call/all-contacts");
-
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 return JsonConvert.DeserializeObject<List<Contatto>>(json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API nel recupero dei contatti: {ex.Message}");
-                return new List<Contatto>(); // oppure null, ma meglio una lista vuota per evitare eccezioni
-            }
+            });
         }
-
-
-
 
         public async Task<bool> AddContactAsync(Contatto contact)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 var content = new StringContent(
                     JsonConvert.SerializeObject(new
@@ -253,17 +306,14 @@ namespace ClientCentralino_vs2.Services
                 HttpResponseMessage response = await _client.PostAsync("api/Call/add-contact", content);
                 response.EnsureSuccessStatusCode();
                 return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API: {ex.Message}");
-                return false;
-            }
+            });
         }
 
         public async Task<Chiamata> FindCallAsync(int callId)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.GetAsync($"api/Call/find-call?callId={callId}");
 
@@ -273,17 +323,14 @@ namespace ClientCentralino_vs2.Services
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 return JsonConvert.DeserializeObject<Chiamata>(json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API: {ex.Message}");
-                return null;
-            }
+            });
         }
 
         public async Task<bool> UpdateCallLocationAsync(int callId, string location)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 var content = new StringContent(
                     JsonConvert.SerializeObject(new { CallId = callId, Location = location }),
@@ -293,80 +340,81 @@ namespace ClientCentralino_vs2.Services
                 HttpResponseMessage response = await _client.PutAsync("api/Call/update-call-location", content);
                 response.EnsureSuccessStatusCode();
                 return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API: {ex.Message}");
-                return false;
-            }
+            });
         }
 
 
         public async Task<List<Contatto>> GetIncompleteContactsAsync()
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.GetAsync("api/Call/get-incomplete-contacts");
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 return JsonConvert.DeserializeObject<List<Contatto>>(json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API nel recupero contatti incompleti: {ex.Message}");
-                return new List<Contatto>();
-            }
+            });
         }
 
 
         public async Task<bool> DeleteContactAsync(string phoneNumber)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.DeleteAsync($"api/Call/delete-contact?phoneNumber={phoneNumber}");
                 return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API nell'eliminazione del contatto: {ex.Message}");
-                return false;
-            }
+            });
         }
 
         public async Task<bool> DeleteChiamataByNumeriAsync(string callerNumber, string calledNumber, DateTime endCall)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
-                // Formatta la data per l'URL
-                string formattedDate = endCall.ToString("o"); // ISO 8601 format
+                string formattedDate = endCall.ToString("o");
                 HttpResponseMessage response = await _client.DeleteAsync(
                     $"api/Call/delete-chiamata?callerNumber={Uri.EscapeDataString(callerNumber)}" +
                     $"&calledNumber={Uri.EscapeDataString(calledNumber)}" +
                     $"&endCall={Uri.EscapeDataString(formattedDate)}");
 
                 return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Errore API nell'eliminazione della chiamata: {ex.Message}");
-                return false;
-            }
+            });
         }
 
         public async Task<bool> DeleteChiamataByUniqueIdAsync(string uniqueId)
         {
-            try
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
                 HttpResponseMessage response = await _client.DeleteAsync(
                     $"api/Call/delete-chiamata-by-id?uniqueId={Uri.EscapeDataString(uniqueId)}");
 
                 return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
+            });
+        }
+
+        public async Task<List<IncomingCall>> GetIncomingCallsAsync()
+        {
+            await LoginTask;
+            CheckClient();
+            return await ExecuteWithTokenRefreshAsync(async () =>
             {
-                Console.WriteLine($"Errore API nell'eliminazione della chiamata: {ex.Message}");
-                return false;
-            }
+                HttpResponseMessage response = await _client.GetAsync("api/call/incoming-calls");
+                response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<List<IncomingCall>>(json);
+            });
+        }
+
+        private void CheckClient()
+        {
+            if (_client == null)
+                throw new InvalidOperationException("HttpClient non inizializzato");
         }
     }
 

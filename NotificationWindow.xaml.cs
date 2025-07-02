@@ -41,6 +41,7 @@ namespace ClientCentralino_vs2
                 _call.Locazione = extractedLocation;
             }
 
+
             // Inizializza la ComboBox con le località
             InitializeLocationsComboBox();
         }

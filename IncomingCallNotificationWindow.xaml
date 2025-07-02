@@ -1,0 +1,73 @@
+﻿<Window x:Class="ClientCentralino_vs2.IncomingCallNotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Chiamata in ingresso" Height="180" Width="400"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Border CornerRadius="12" Background="#E6F9F6" BorderThickness="1" BorderBrush="#FF4ED19C">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" ShadowDepth="0" Color="#40000000" Opacity="0.25"/>
+        </Border.Effect>
+        <Grid Margin="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                <Ellipse Width="28" Height="28" Fill="#FF4ED19C" VerticalAlignment="Center">
+                    <Ellipse.Effect>
+                        <DropShadowEffect BlurRadius="6" ShadowDepth="0" Color="#FF4ED19C" Opacity="0.2"/>
+                    </Ellipse.Effect>
+                </Ellipse>
+                <TextBlock Text="Chiamata in ingresso" FontWeight="Bold" FontSize="18" Foreground="#FF1B5E20" Margin="10,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Numero chiamante -->
+            <Grid Grid.Row="1" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Numero:" Margin="0,0,10,0" Foreground="#FF388E3C" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="1" x:Name="TxtCallerNumber" Foreground="#FF1B5E20" FontWeight="Medium"/>
+            </Grid>
+
+            <!-- Ragione sociale -->
+            <Grid Grid.Row="2" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Ragione Sociale:" Margin="0,0,10,0" Foreground="#FF388E3C" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="1" x:Name="TxtRagioneSociale" Foreground="#FF1B5E20" FontWeight="Medium"/>
+            </Grid>
+
+            <!-- Orario arrivo -->
+            <Grid Grid.Row="3" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Orario:" Margin="0,0,10,0" Foreground="#FF388E3C" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="1" x:Name="TxtArrivalTime" Foreground="#FF1B5E20" FontWeight="Medium"/>
+            </Grid>
+
+            <!-- Pulsanti -->
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
+                <Button x:Name="BtnOpenApp" Content="Apri App" Width="120" Margin="0,0,10,0" Click="BtnOpenApp_Click" Background="#FF4ED19C" Foreground="White" FontWeight="Bold"/>
+                <Button x:Name="BtnClose" Content="Chiudi" Width="90" Click="BtnClose_Click" Background="#FFB2DFDB" Foreground="#FF1B5E20"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window> 
